@@ -1,0 +1,25 @@
+name: Colorpal
+version: "1.0"
+author: Adam H. <adamazing@gmail.com>
+about: Generate color palette from an image
+
+settings:
+    - ArgRequiredElseHelp
+
+args:
+    - number_of_colours:
+          help: Colours in palette
+          short: n
+          long: number-of-colours
+          default_value: "8"
+    - quantization_method:
+          help: Select which quantization method to use
+          short: q
+          long: quantization-method
+          possible_values: [median-cut, k-means]
+          default_value: median-cut
+    - image:
+          help: One or more images to process
+          index: 1
+          multiple: true
+          required: true
