@@ -2,13 +2,13 @@
 name = "colorpal"
 version = "0.1.1"
 authors = ["Adam Henley <adamazing@gmail.com>"]
-edition = "2018"
+edition = "2021"
+description = "Generates a color palette based on an image."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.33"
-image = "~0.10"
+anyhow = "1.0.65"
+image = "~0.24.4"
 mcq = "0.1.0"
-clap = { version= "3.0.0-beta.2", features = ["yaml","suggestions","color"] }
-imageflow_core = { git = "https://github.com/imazen/imageflow.git", branch = "main" }
+clap = { version= "4.0.8", features = ["derive","suggestions","color"] }

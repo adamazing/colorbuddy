@@ -1,69 +1,90 @@
-use std::fs::*;
-use std::io::BufReader;
+use std::fmt;
 use std::path::*;
 
 use mcq::MMCQ;
-use anyhow::{ Result};
-use clap::{load_yaml, App};
+use anyhow::Result;
+use clap::{Parser, ValueEnum};
 
 // Height for the palette that we construct along the bottom of the image
 const COLOR_HEIGHT: u32 = 256;
 
-fn main() -> Result<()>  {
-    let yaml = load_yaml!("cli.yml");
-    let app = App::from(yaml);
-    let matches = app.get_matches();
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None,trailing_var_arg=true)]
+struct Args {
+    #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
+    quantisation_method: QuantisationMethod,
 
-    let palette_size_str = matches.value_of("number_of_colours").unwrap();
-    let palette_size: u32 = palette_size_str.parse::<u32>().unwrap();
+    #[arg(short='n', long="number-of-colours", default_value="8")]
+    number_of_colours: u32,
 
-    let input_images: Vec<&str> = matches.values_of("image").unwrap().collect();
-    for img in input_images {
-        process_image(img, &palette_size);
+    #[arg(long, short='i')]
+    image: String
+}
+
+#[derive(ValueEnum,Clone, Debug)]
+enum QuantisationMethod {
+    MedianCut,
+    KMeans
+}
+
+impl fmt::Display for QuantisationMethod {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            QuantisationMethod::MedianCut => write!(f, "median-cut"),
+            QuantisationMethod::KMeans => write!(f, "k-means")
+        }
     }
-    
+}
+
+fn main() -> Result<()>  {
+    let matches = Args::parse();
+
+    println!("{:?}", matches.quantisation_method);
+    println!("{:?}", matches.number_of_colours);
+
+    let image = matches.image;
+    process_image(&image, &matches.number_of_colours);
+
     Ok(())
 }
 
 
 /**
  * Process Image function
- * Writes an output image consisting of the original image, with a palette of colours shown along the bottom.
+ * Writes an output image consisting of the original image, with a palette of colours shown
+ * along the bottom.
  *
  * [String] filename of the image to process
  * [u32] Size of the palette to generate
  */
-fn process_image(file: &str, palette_size: &u32) {
-    //println!("Reading image {}", file);
+fn process_image(file: &String, number_of_colours: &u32) {
+    println!("Reading image {}", file);
 
-    let mcq = {
-        let img = image::load(BufReader::new(File::open(file).unwrap()), image::JPEG).unwrap().to_rgba();
-        let data = img.into_vec();
-        // Here we extract the quantized colors from the image.
-        MMCQ::from_pixels_u8_rgba(data.as_slice(), *palette_size)
-    };
+    let dynamic_image = image::open(file).unwrap();
+    let input_image = dynamic_image.to_rgba8();
+    let data = input_image.clone().into_vec();
+    let mcq = MMCQ::from_pixels_u8_rgba(data.as_slice(), *number_of_colours);
+
     // A `Vec` of colors, sorted by usage frequency descending
     let qc = mcq.get_quantized_colors();
 
-    // Open the image to be processed
-    let img = image::load(BufReader::new(File::open(file).unwrap()), image::JPEG).unwrap().to_rgba();
-    let (ix, iy) = img.dimensions(); 
+    let (input_image_width, input_image_height) = input_image.dimensions();
 
     // Create an image buffer big enough to hold the output image
-    let mut imgbuf = image::ImageBuffer::new(ix, iy + COLOR_HEIGHT);
+    let mut imgbuf = image::ImageBuffer::new(input_image_width, input_image_height + COLOR_HEIGHT);
 
     // This clones the image we're processing into the output buffer
-    for x in 0..ix {
-        for y in 0..iy {
-            imgbuf.put_pixel(x, y, img.get_pixel(x, y).clone());
+    for x in 0..input_image_width {
+        for y in 0..input_image_height {
+            imgbuf.put_pixel(x, y, *input_image.get_pixel(x, y));
         }
     }
 
     // The width of each color in the palette strip
-    let color_width = ix / palette_size;
+    let color_width = input_image_width / number_of_colours;
 
-    for y in (iy + 1)..(iy + COLOR_HEIGHT) {
-        for x0 in 0..*palette_size {
+    for y in (input_image_height + 1)..(input_image_height + COLOR_HEIGHT) {
+        for x0 in 0..*number_of_colours {
             let x1 = x0 * color_width;
             let q = qc[x0 as usize];
 
@@ -73,11 +94,10 @@ fn process_image(file: &str, palette_size: &u32) {
         }
     }
 
-    // Get a file buffer using the original filename, appending the `.png`
-    // extension
-    let ref mut fout = File::create(format!("./target/{}.png",
-                                    Path::new(file).file_name().unwrap().to_str().unwrap()).as_str()).unwrap();
+    let original_file_stem = Path::new(file).file_stem().unwrap().to_str().unwrap();
+    // Get a file buffer using the original filename, appending the `.png` extension
+    let output_file_name = format!("./target/{}.png", original_file_stem);
 
     // Save the output image
-    let _ = image::ImageRgba8(imgbuf).save(fout, image::PNG);
+    let _ = imgbuf.save(output_file_name);
 }
