@@ -11,7 +11,7 @@ const COLOR_HEIGHT: u32 = 256;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None,trailing_var_arg=true)]
 struct Args {
-    #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
+    #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::MedianCut)]
     quantisation_method: QuantisationMethod,
 
     #[arg(short='n', long="number-of-colours", default_value="8")]
