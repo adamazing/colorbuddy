@@ -147,7 +147,7 @@ fn process_image(
     // The width of each color in the palette strip
     let color_width = input_image_width / *number_of_colours as u32;
 
-    for y in (input_image_height + 1)..(input_image_height + COLOR_HEIGHT) {
+    for y in (input_image_height)..(input_image_height + COLOR_HEIGHT) {
         for x0 in 0..*number_of_colours {
             let x1 = x0 as u32 * color_width;
             let q = &qc[x0 as usize];
