@@ -3,25 +3,30 @@ use std::path::*;
 
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
-use exoquant::Color as ExoquantColor;
-use exoquant::{generate_palette, optimizer, Histogram, SimpleColorSpace};
+use exoquant::{generate_palette, optimizer, Color, Histogram, SimpleColorSpace};
+use image::RgbImage;
 use mcq::ColorNode;
 use mcq::MMCQ;
 
+// TODO: Make this configurable, either in absolute pixels, or as a percentage of the image?
 // Height for the palette that we construct along the bottom of the image
 const COLOR_HEIGHT: u32 = 256;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None,trailing_var_arg=true)]
-struct Args {
-    #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
-    quantisation_method: QuantisationMethod,
+#[derive(ValueEnum, Clone, Debug)]
+enum OutputType {
+    Json,
+    OriginalImage,
+    StandalonePalette,
+}
 
-    #[arg(short = 'n', long = "number-of-colours", default_value = "8")]
-    number_of_colours: usize,
-
-    #[arg(long, short = 'i')]
-    image: String,
+impl fmt::Display for OutputType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            OutputType::Json => write!(f, "json"),
+            OutputType::OriginalImage => write!(f, "original-image"),
+            OutputType::StandalonePalette => write!(f, "standalone"),
+        }
+    }
 }
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -39,51 +44,76 @@ impl fmt::Display for QuantisationMethod {
     }
 }
 
-struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
+    quantisation_method: QuantisationMethod,
+
+    #[arg(short = 'n', long = "number-of-colours", default_value = "8")]
+    number_of_colours: usize,
+
+    #[arg(short='t', long = "output-type", default_value_t=OutputType::OriginalImage)]
+    output_type: OutputType,
+
+    image: PathBuf,
 }
 
 fn main() -> Result<()> {
     let matches = Args::parse();
 
-    let image = matches.image;
     process_image(
-        &image,
-        &matches.number_of_colours,
-        &matches.quantisation_method,
+        &matches.image,
+        matches.number_of_colours,
+        matches.quantisation_method,
     );
 
     Ok(())
 }
 
-fn mcq_color_nodes_to_local_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Color> {
-    let mut local_colors: Vec<Color> = vec![];
-
-    for c in mcq_color_nodes {
-        local_colors.push(Color {
+fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Color> {
+    mcq_color_nodes
+        .iter()
+        .map(|c| Color {
             r: c.red,
             g: c.grn,
             b: c.blu,
+            a: 0xff,
         })
-    }
-
-    local_colors
+        .collect()
 }
 
-fn exoquant_colors_to_local_colors(exoquant_colors: Vec<ExoquantColor>) -> Vec<Color> {
-    let mut local_colors: Vec<Color> = vec![];
+fn extract_palette(
+    input_image: &RgbImage,
+    number_of_colours: usize,
+    quantisation_method: QuantisationMethod,
+) -> Vec<Color> {
+    match quantisation_method {
+        QuantisationMethod::MedianCut => {
+            let data = input_image.clone().into_vec();
+            let mcq =
+                MMCQ::from_pixels_u8_rgba(data.as_slice(), number_of_colours.try_into().unwrap());
 
-    for c in exoquant_colors {
-        local_colors.push(Color {
-            r: c.r,
-            g: c.g,
-            b: c.b,
-        })
+            mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec())
+        }
+        QuantisationMethod::KMeans => {
+            let histogram: Histogram = input_image
+                .pixels()
+                .map(|p| Color {
+                    r: p[0],
+                    g: p[1],
+                    b: p[2],
+                    a: 0xff,
+                })
+                .collect();
+            generate_palette(
+                &histogram,
+                &SimpleColorSpace::default(),
+                &optimizer::KMeans,
+                number_of_colours,
+            )
+        }
     }
-
-    local_colors
 }
 
 /**
@@ -95,47 +125,22 @@ fn exoquant_colors_to_local_colors(exoquant_colors: Vec<ExoquantColor>) -> Vec<C
  * [QuantisationMethod] The quantisation method to use.
  */
 fn process_image(
-    file: &String,
-    number_of_colours: &usize,
-    quantisation_method: &QuantisationMethod,
+    file: &PathBuf,
+    number_of_colours: usize,
+    quantisation_method: QuantisationMethod,
 ) {
-    // println!("Reading image {}", file);
-
     let dynamic_image = image::open(file).unwrap();
-    let input_image = dynamic_image.to_rgba8();
+    let input_image = dynamic_image.to_rgb8();
     let (input_image_width, input_image_height) = input_image.dimensions();
 
-    let qc: Vec<Color> = match quantisation_method {
-        QuantisationMethod::MedianCut => {
-            let data = input_image.clone().into_vec();
-            let mcq = MMCQ::from_pixels_u8_rgba(
-                data.as_slice(),
-                (*number_of_colours).try_into().unwrap(),
-            );
-
-            mcq_color_nodes_to_local_colors(mcq.get_quantized_colors().to_vec())
-        }
-        QuantisationMethod::KMeans => {
-            let histogram: Histogram = input_image
-                .pixels()
-                .map(|p| ExoquantColor {
-                    r: p[0],
-                    g: p[1],
-                    b: p[2],
-                    a: p[3],
-                })
-                .collect();
-            exoquant_colors_to_local_colors(generate_palette(
-                &histogram,
-                &SimpleColorSpace::default(),
-                &optimizer::KMeans,
-                *number_of_colours,
-            ))
-        }
-    };
+    let color_palette: Vec<Color> =
+        extract_palette(&input_image, number_of_colours, quantisation_method);
 
     // Create an image buffer big enough to hold the output image
     let mut imgbuf = image::ImageBuffer::new(input_image_width, input_image_height + COLOR_HEIGHT);
+
+    // The width of each color in the palette strip
+    let color_width = input_image_width / number_of_colours as u32;
 
     // This clones the image we're processing into the output buffer
     for x in 0..input_image_width {
@@ -144,24 +149,27 @@ fn process_image(
         }
     }
 
-    // The width of each color in the palette strip
-    let color_width = input_image_width / *number_of_colours as u32;
-
-    for y in (input_image_height + 1)..(input_image_height + COLOR_HEIGHT) {
-        for x0 in 0..*number_of_colours {
+    for y in (input_image_height)..(input_image_height + COLOR_HEIGHT) {
+        for x0 in 0..number_of_colours {
             let x1 = x0 as u32 * color_width;
-            let q = &qc[x0 as usize];
+            let q = &color_palette[x0 as usize];
 
             for x2 in 0..color_width {
-                imgbuf.put_pixel(x1 + x2, y, image::Rgba([q.r, q.g, q.b, 0xff]));
+                imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
             }
         }
     }
 
-    let original_file_stem = Path::new(file).file_stem().unwrap().to_str().unwrap();
-    // Get a file buffer using the original filename, appending the `.png` extension
-    let output_file_name = format!("./{}.png", original_file_stem);
+    // Get an output file name using the original filename, appending the `.png` extension
+    let mut output_file_name = PathBuf::from(file.file_stem().unwrap());
+    output_file_name.set_extension("png");
 
     // Save the output image
-    let _ = imgbuf.save(output_file_name);
+    let save_result = imgbuf.save(&output_file_name);
+
+    assert!(
+        save_result.is_ok(),
+        "Failed to save: {:?}",
+        output_file_name.canonicalize().unwrap()
+    );
 }
