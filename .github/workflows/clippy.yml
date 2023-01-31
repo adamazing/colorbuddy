@@ -1,0 +1,24 @@
+name: Run Clippy
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+      shell: bash
+      env:
+        RUST_BACKTRACE: full
