@@ -164,10 +164,8 @@ fn process_image(
     }
 
     for y in (input_image_height)..(total_height) {
-        for x0 in 0..number_of_colours {
+        for (x0, q) in color_palette.iter().enumerate().take(number_of_colours) {
             let x1 = x0 as u32 * color_width;
-            let q = &color_palette[x0];
-
             for x2 in 0..color_width {
                 imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
             }
