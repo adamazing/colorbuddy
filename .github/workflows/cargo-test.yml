@@ -1,7 +1,8 @@
-name: Run tests
+name: Run Tests
 
 on:
   pull_request:
+    types: [opened, synchronize]
     branches:
       - main
 
