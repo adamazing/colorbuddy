@@ -52,8 +52,8 @@ struct Args {
     #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
     quantisation_method: QuantisationMethod,
 
-    #[arg(short = 'n', long = "number-of-colours", default_value = "8")]
-    number_of_colours: usize,
+    #[arg(short = 'n', long = "number-of-colors", default_value = "8")]
+    number_of_colors: usize,
 
     #[arg(short='t', long = "output-type", default_value_t=OutputType::OriginalImage)]
     output_type: OutputType,
@@ -69,7 +69,7 @@ fn main() -> Result<()> {
 
     process_image(
         &matches.image,
-        matches.number_of_colours,
+        matches.number_of_colors,
         matches.quantisation_method,
         matches.palette_height,
         matches.output_type,
@@ -92,14 +92,14 @@ fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Co
 
 fn extract_palette(
     input_image: &RgbImage,
-    number_of_colours: usize,
+    number_of_colors: usize,
     quantisation_method: QuantisationMethod,
 ) -> Vec<Color> {
     match quantisation_method {
         QuantisationMethod::MedianCut => {
             let data = input_image.clone().into_vec();
             let mcq =
-                MMCQ::from_pixels_u8_rgba(data.as_slice(), number_of_colours.try_into().unwrap());
+                MMCQ::from_pixels_u8_rgba(data.as_slice(), number_of_colors.try_into().unwrap());
 
             mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec())
         }
@@ -117,14 +117,14 @@ fn extract_palette(
                 &histogram,
                 &SimpleColorSpace::default(),
                 &optimizer::KMeans,
-                number_of_colours,
+                number_of_colors,
             )
         }
     }
 }
 
 /**
- * Writes an output image consisting of the original image, with a palette of colours shown
+ * Writes an output image consisting of the original image, with a palette of colors shown
  * along the bottom.
  *
  * [String] filename of the image to process.
@@ -133,7 +133,7 @@ fn extract_palette(
  */
 fn process_image(
     file: &PathBuf,
-    number_of_colours: usize,
+    number_of_colors: usize,
     quantisation_method: QuantisationMethod,
     palette_height: PaletteHeight,
     output_type: OutputType,
@@ -151,7 +151,7 @@ fn process_image(
     };
 
     let color_palette: Vec<Color> =
-        extract_palette(&input_image, number_of_colours, quantisation_method);
+        extract_palette(&input_image, number_of_colors, quantisation_method);
 
     /*
      *  Output to the original image: */
@@ -160,7 +160,7 @@ fn process_image(
         let mut imgbuf = image::ImageBuffer::new(input_image_width, total_height);
 
         // The width of each color in the palette strip
-        let color_width = input_image_width / number_of_colours as u32;
+        let color_width = input_image_width / number_of_colors as u32;
 
         // This clones the image we're processing into the output buffer
         for x in 0..input_image_width {
@@ -170,7 +170,7 @@ fn process_image(
         }
 
         for y in (input_image_height)..(total_height) {
-            for (x0, q) in color_palette.iter().enumerate().take(number_of_colours) {
+            for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
                 let x1 = x0 as u32 * color_width;
                 for x2 in 0..color_width {
                     imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));

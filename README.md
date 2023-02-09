@@ -47,7 +47,7 @@ Arguments:
 Options:
   -m, --quantisation-method <QUANTISATION_METHOD>
           [default: k-means] [possible values: median-cut, k-means]
-  -n, --number-of-colours <NUMBER_OF_COLOURS>
+  -n, --number-of-colors <NUMBER_OF_COLORS>
           [default: 8]
   -t, --output-type <OUTPUT_TYPE>
           [default: original-image] [possible values: json, original-image]
@@ -74,7 +74,7 @@ colorbuddy --output-type json
 
 Output the original image with a palette of the 5 most prevalent colors along the bottom:
 ```sh
-colorbuddy --number-of-colours 5 --output-type original-image
+colorbuddy --number-of-colors 5 --output-type original-image
 ```
 
 ## Roadmap
