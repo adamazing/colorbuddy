@@ -78,6 +78,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/**
+ * Internally we deal with a Vector<Color> (`Color` provided by the exoquant crate).
+ * This helper function converts a Vector of MCQ `ColorNode`s into a Vector of exoquant `Color`s.
+ */
 fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Color> {
     mcq_color_nodes
         .iter()
@@ -90,6 +94,15 @@ fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Co
         .collect()
 }
 
+
+/**
+ * This function abstracts the extraction of the Vector of `Color`s depending on the chosen
+ * quantisation method.
+ *
+ * [&RgbImage] The image to be processed.
+ * [usize] The number of colors required for the palette.
+ * [QuantisationMethod] The quantisation method to be used.
+ **/
 fn extract_palette(
     input_image: &RgbImage,
     number_of_colors: usize,
@@ -124,12 +137,15 @@ fn extract_palette(
 }
 
 /**
- * Writes an output image consisting of the original image, with a palette of colors shown
- * along the bottom.
+ * This is the meat of the tool. Opens the image, gets the palette of colors, and outputs the
+ * requested artifact (either a copy of the original image with the palette along the bottom, or a
+ * JSON file with the palette details.)
  *
- * [String] filename of the image to process.
- * [u32] Size of the palette to generate.
+ * [&PathBuf] file, the image to process.
+ * [usize] Number of colors to pick for the palette.
  * [QuantisationMethod] The quantisation method to use.
+ * [PaletteHeight] The height of the palette.
+ * [OutputType] The type of output requested.
  */
 fn process_image(
     file: &PathBuf,
@@ -201,10 +217,22 @@ fn process_image(
     }
 }
 
+/**
+ * This helper function just converts a color from RGB values to a hex string.
+ */
 fn rgb_to_hex(red: u8, green: u8, blue: u8) -> String {
     format!("#{red:02x}{green:02x}{blue:02x}")
 }
 
+/**
+ * This helper function is used by clap when handling the palette-height option.
+ * It parses a string and returns a palette height.
+ *
+ * The palette height can be provided:
+ *  - as a percentage of the original image (a number followed by '%')
+ *  - as a number of pixels (a number followed by the string 'px')
+ *  - as a number of pixels (a number by itself)
+ */
 fn palette_height_parser(s: &str) -> Result<PaletteHeight, String> {
     if s.ends_with('%') {
         let percentage = &s[0..s.len() - 1];
