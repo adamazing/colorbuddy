@@ -8,7 +8,7 @@ use image::RgbImage;
 use mcq::ColorNode;
 use mcq::MMCQ;
 
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ValueEnum)]
 enum OutputType {
     Json,
     OriginalImage,
@@ -25,10 +25,10 @@ impl fmt::Display for OutputType {
     }
 }
 
-#[derive(ValueEnum, Clone, Debug)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 enum QuantisationMethod {
-    MedianCut,
     KMeans,
+    MedianCut,
 }
 
 impl fmt::Display for QuantisationMethod {
@@ -40,13 +40,13 @@ impl fmt::Display for QuantisationMethod {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum PaletteHeight {
-    Percentage(f32),
     Absolute(u32),
+    Percentage(f32),
 }
 
-#[derive(Parser, Debug)]
+#[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
@@ -61,19 +61,21 @@ struct Args {
     #[arg(short='p', long = "palette-height", value_parser = palette_height_parser, default_value = "256")]
     palette_height: PaletteHeight,
 
-    image: PathBuf,
+    images: Vec<PathBuf>,
 }
 
 fn main() -> Result<()> {
     let matches = Args::parse();
 
-    process_image(
-        &matches.image,
-        matches.number_of_colors,
-        matches.quantisation_method,
-        matches.palette_height,
-        matches.output_type,
-    );
+    for image in &matches.images {
+        process_image(
+            image,
+            matches.number_of_colors,
+            matches.quantisation_method,
+            matches.palette_height,
+            matches.output_type,
+        );
+    }
 
     Ok(())
 }
@@ -93,7 +95,6 @@ fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Co
         })
         .collect()
 }
-
 
 /**
  * This function abstracts the extraction of the Vector of `Color`s depending on the chosen
