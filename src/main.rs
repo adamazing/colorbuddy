@@ -4,7 +4,7 @@ use std::path::*;
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
 use exoquant::{generate_palette, optimizer, Color, Histogram, SimpleColorSpace};
-use image::RgbImage;
+use image::{DynamicImage, RgbImage};
 use mcq::ColorNode;
 use mcq::MMCQ;
 
@@ -49,16 +49,19 @@ enum PaletteHeight {
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(short='m', long="quantisation-method", default_value_t=QuantisationMethod::KMeans)]
+    #[arg(short = 'm', long = "quantisation-method", default_value_t = QuantisationMethod::KMeans)]
     quantisation_method: QuantisationMethod,
 
     #[arg(short = 'n', long = "number-of-colors", default_value = "8")]
     number_of_colors: usize,
 
-    #[arg(short='t', long = "output-type", default_value_t=OutputType::OriginalImage)]
+    #[arg(short = 'o', long = "output", default_value = None)]
+    output: Option<PathBuf>,
+
+    #[arg(short = 't', long = "output-type", default_value_t = OutputType::OriginalImage)]
     output_type: OutputType,
 
-    #[arg(short='p', long = "palette-height", value_parser = palette_height_parser, default_value = "256")]
+    #[arg(short = 'p', long = "palette-height", value_parser = palette_height_parser, default_value = "256")]
     palette_height: PaletteHeight,
 
     images: Vec<PathBuf>,
@@ -68,12 +71,16 @@ fn main() -> Result<()> {
     let matches = Args::parse();
 
     for image in &matches.images {
+        let output_file_name =
+            output_file_name(image, matches.output.as_ref(), matches.output_type);
+
         process_image(
             image,
             matches.number_of_colors,
             matches.quantisation_method,
             matches.palette_height,
             matches.output_type,
+            &output_file_name,
         );
     }
 
@@ -147,6 +154,7 @@ fn extract_palette(
  * [QuantisationMethod] The quantisation method to use.
  * [PaletteHeight] The height of the palette.
  * [OutputType] The type of output requested.
+ * [&PathBuf] The output file name.
  */
 fn process_image(
     file: &PathBuf,
@@ -154,8 +162,17 @@ fn process_image(
     quantisation_method: QuantisationMethod,
     palette_height: PaletteHeight,
     output_type: OutputType,
+    output_file_name: &PathBuf,
 ) {
-    let dynamic_image = image::open(file).unwrap();
+    let dynamic_image: DynamicImage;
+
+    if let Ok(img) = image::open(file) {
+        dynamic_image = img;
+    } else {
+        eprintln!("Error opening image: {}", file.to_str().unwrap());
+        return;
+    };
+
     let input_image = dynamic_image.to_rgb8();
     let (input_image_width, input_image_height) = input_image.dimensions();
 
@@ -195,11 +212,6 @@ fn process_image(
             }
         }
 
-        // Get an output file name using the original filename, appending the `.png` extension
-        let mut output_file_name = PathBuf::from(file.file_stem().unwrap());
-        output_file_name.set_extension("png");
-
-        // Save the output image
         let save_result = imgbuf.save(&output_file_name);
 
         assert!(
@@ -215,6 +227,42 @@ fn process_image(
             println!("\n\t}}");
         }
         println!("}}");
+    }
+}
+
+/**
+ * Given an original file path, an optional output path, and an output type,
+ * returns a new file path for the output file. If an output path is provided,
+ * the function uses that path. Otherwise, it constructs a new path based on the
+ * original file path and the output type.
+ *
+ * Parameters:
+ * - `original_file`: A reference to the original file path.
+ * - `output`: An optional reference to the output file path.
+ * - `output_type`: The type of output to generate.
+ *
+ * Returns:
+ * - A `PathBuf` representing the new output file path.
+ */
+fn output_file_name(
+    original_file: &Path,
+    output: Option<&PathBuf>,
+    output_type: OutputType,
+) -> PathBuf {
+    let original_image_stem = original_file.file_stem().unwrap().to_str().unwrap();
+    let new_extension = match output_type {
+        OutputType::OriginalImage => match original_file.extension() {
+            Some(ext) => ext.to_str().unwrap(),
+            None => "png",
+        },
+        OutputType::Json => "json",
+    };
+    let file_name = format!("{original_image_stem}_palette.{new_extension}");
+
+    match output {
+        Some(p) if !p.is_dir() => PathBuf::from(p).with_file_name(file_name),
+        Some(p) if p.is_dir() => PathBuf::from(p).join(file_name),
+        _ => PathBuf::from(original_file).with_file_name(file_name),
     }
 }
 
