@@ -69,20 +69,21 @@ The default options will result in:
 
 Generate a JSON file containing the 8 most prevalent colors in the image:
 ```sh
-colorbuddy --output-type json
+colorbuddy --output-type json original-image.jpg
 ```
 
-Output the original image with a palette of the 5 most prevalent colors along the bottom:
+Output the original images with a palette of the 5 most prevalent colors along the bottom:
 ```sh
-colorbuddy --number-of-colors 5 --output-type original-image
+colorbuddy --number-of-colors 5 --output-type original-image.jpg another-image.jpg
 ```
 
 ## Roadmap
 
+- [x] ~~Allow users to specify multiple images upon which to apply the same options~~
 - [ ] Allow users to specify an output file/directory
 - [ ] Allow users to generate a separate standalone palette image
 - [ ] Allow users to generate palette information used by their graphics tools/applications
-- [ ] ???
+- [ ] Add tests
 
 ## Author
 
