@@ -18,6 +18,7 @@
 - [Install](#install)
 - [Usage](#usage)
 - [Examples](#examples)
+- [FAQs](#faqs)
 - [Roadmap](#roadmap)
 - [Author](#author)
 - [Show your support](#show-your-support)
@@ -76,6 +77,47 @@ Output the original images with a palette of the 5 most prevalent colors along t
 ```sh
 colorbuddy --number-of-colors 5 --output-type original-image.jpg another-image.jpg
 ```
+
+## FAQs
+
+<details>
+  <summary>Q. What is Median Cut Quantisation?</summary>
+
+[Median Cut quantization](https://en.wikipedia.org/wiki/Median_cut) is a method used in image processing to reduce the number of colors used in an image. The goal is to represent the original image using a smaller color palette, while preserving as much of the visual information as possible.
+
+Think of it like this: imagine you have a box of crayons, and you want to reduce the number of crayons you have while still being able to color a picture. The Median Cut quantization method would help you choose a smaller set of crayons that represent the range of colors used in your picture, so that you can still color a picture that looks similar to the original.
+
+In Median Cut quantization, the first step is to divide the color space of the image into smaller sections. This is done by finding the median color value in each section and dividing the section in two based on this median value. This process is repeated until you have the desired number of colors in your palette.
+
+</details>
+
+<details>
+<summary>Q. What is "k-means clustering"?</summary>
+
+[K-means clustering](https://en.wikipedia.org/wiki/K-means_clustering) is a machine learning technique used for grouping data into "clusters" based on similarities between the data points.
+
+Think of it like this: imagine you have a bunch of different colored balls, and you want to group them into a few different baskets based on their color. K Means Clustering is a way for the computer to automatically separate the balls into baskets such that each basket contains balls of similar color.
+
+The "K" in K Means refers to the number of baskets you want to create. So, you can choose to have 2 baskets, 3 baskets, or even 10 baskets, depending on how many groups you want to create.
+
+</details>
+
+<details>
+  <summary>Q. What is the difference between the two quantisation methods?</summary>
+
+Or: "When should I use one method over the other?"
+
+K-means clustering results in a palette of the **most common** colours in the image, whereas median cut quantisation results in a palette of **representative** colours.
+
+Experiment with what works best for your application!
+
+</details>
+
+## Help
+
+This is a personal, unpaid, open source project.
+If you encounter a bug or other issue, require help or the addition of some new feature, please feel free to raise an Issue on GitHub.
+I will endeavour to respond in a relatively timely manner but provide no guarantees.
 
 ## Roadmap
 
