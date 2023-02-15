@@ -80,6 +80,11 @@ Output the original images with a palette of the 5 most prevalent colors along t
 colorbuddy --number-of-colors 5 --output-type original-image.jpg another-image.jpg
 ```
 
+Specify the height of the palette as a percentage of the original image's height:
+```sh
+colorbuddy --palette-height 20% original-image.jpg
+```
+
 ## FAQs
 
 <details>
