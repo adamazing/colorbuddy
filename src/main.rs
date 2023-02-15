@@ -302,3 +302,122 @@ fn palette_height_parser(s: &str) -> Result<PaletteHeight, String> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_output_file_name() {
+        let original_file = Path::new("path/to/original/some_file.png");
+
+        // Test case 1: Output path provided
+        let output_path = PathBuf::from("path/to/output/something.jpg");
+        let output_type = OutputType::OriginalImage;
+        let result = output_file_name(&original_file, Some(&output_path), output_type);
+        let expected_result = PathBuf::from("path/to/output/some_file_palette.png");
+        assert_eq!(result, expected_result);
+
+        // Test case 2: Output path not provided
+        let output_type = OutputType::OriginalImage;
+        let result = output_file_name(&original_file, None, output_type);
+        let expected_result = PathBuf::from("path/to/original/some_file_palette.png");
+        assert_eq!(result, expected_result);
+
+        // Test case 3: Output path provided and OutputType is json
+        let output_path = PathBuf::from("path/to/output/something.jpg");
+        let output_type = OutputType::Json;
+        let result = output_file_name(&original_file, Some(&output_path), output_type);
+        let expected_result = PathBuf::from("path/to/output/some_file_palette.json");
+        assert_eq!(result, expected_result);
+
+        // Test case 4: Output path not provided and OutputType is json
+        let output_type = OutputType::Json;
+        let result = output_file_name(&original_file, None, output_type);
+        let expected_result = PathBuf::from("path/to/original/some_file_palette.json");
+        assert_eq!(result, expected_result);
+    }
+
+    #[test]
+    fn test_palette_height_parser() {
+        // Test case 0: Missing units (pixels assumed)
+        let input = "235";
+        let result = palette_height_parser(input);
+        let expected_result = Ok(PaletteHeight::Absolute(235));
+        assert_eq!(result, expected_result);
+
+        // Test case 1: Valid absolute value (pixels specified)
+        let input = "130px";
+        let result = palette_height_parser(input);
+        let expected_result = Ok(PaletteHeight::Absolute(130));
+        assert_eq!(result, expected_result);
+
+        // Test case 2: Valid percentage value
+        let input = "50%";
+        let result = palette_height_parser(input);
+        let expected_result = Ok(PaletteHeight::Percentage(50.0));
+        assert_eq!(result, expected_result);
+
+        // Test case 3: Invalid percentage value
+        let input = "150%";
+        let result = palette_height_parser(input);
+        let expected_result = Err(String::from("Percentage must be between 0 and 100"));
+        assert_eq!(result, expected_result);
+
+        // Test case 4: Invalid input
+        let input = "foo";
+        let result = palette_height_parser(input);
+        let expected_result = Err(String::from("Pixels must be a positive integer"));
+        assert_eq!(result, expected_result);
+
+        // Test case 5: Invalid input
+        let input = "-100";
+        let result = palette_height_parser(input);
+        let expected_result = Err(String::from("Pixels must be a positive integer"));
+        assert_eq!(result, expected_result);
+    }
+
+    #[test]
+    fn test_rgb_to_hex() {
+        // Test case 1: All zeros
+        assert_eq!(rgb_to_hex(0, 0, 0), "#000000");
+
+        // Test case 2: All max values
+        assert_eq!(rgb_to_hex(255, 255, 255), "#ffffff");
+
+        // Test case 3: Random values
+        assert_eq!(rgb_to_hex(128, 64, 32), "#804020");
+    }
+
+    #[test]
+    fn test_mcq_color_nodes_to_exoquant_colors() {
+        let mcq_colors = vec![
+            ColorNode {
+                red: 32,
+                grn: 64,
+                blu: 128,
+                rgb: 0,
+                cnt: 0,
+            },
+            ColorNode {
+                red: 133,
+                grn: 78,
+                blu: 232,
+                rgb: 0,
+                cnt: 0,
+            },
+        ];
+
+        let result = mcq_color_nodes_to_exoquant_colors(mcq_colors);
+
+        assert_eq!(result.len(), 2);
+
+        assert_eq!(result.get(0).unwrap().r, 32);
+        assert_eq!(result.get(0).unwrap().g, 64);
+        assert_eq!(result.get(0).unwrap().b, 128);
+
+        assert_eq!(result.get(1).unwrap().r, 133);
+        assert_eq!(result.get(1).unwrap().g, 78);
+        assert_eq!(result.get(1).unwrap().b, 232);
+    }
+}
