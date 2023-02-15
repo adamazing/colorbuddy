@@ -122,7 +122,7 @@ I will endeavour to respond in a relatively timely manner but provide no guarant
 ## Roadmap
 
 - [x] ~~Allow users to specify multiple images upon which to apply the same options~~
-- [ ] Allow users to specify an output file/directory
+- [ ] Allow users to specify an output file/directory (In Progress)
 - [ ] Allow users to generate a separate standalone palette image
 - [ ] Allow users to generate palette information used by their graphics tools/applications
 - [ ] Add tests
