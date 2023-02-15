@@ -50,6 +50,8 @@ Options:
           [default: k-means] [possible values: median-cut, k-means]
   -n, --number-of-colors <NUMBER_OF_COLORS>
           [default: 8]
+  -o, --output <OUTPUT>
+
   -t, --output-type <OUTPUT_TYPE>
           [default: original-image] [possible values: json, original-image]
   -p, --palette-height <PALETTE_HEIGHT>
@@ -68,7 +70,7 @@ The default options will result in:
   - with a height of 256px
   - calculated using k-means clustering
 
-Generate a JSON file containing the 8 most prevalent colors in the image:
+Generate JSON containing the 8 most prevalent colors in the image:
 ```sh
 colorbuddy --output-type json original-image.jpg
 ```
@@ -121,11 +123,11 @@ I will endeavour to respond in a relatively timely manner but provide no guarant
 
 ## Roadmap
 
-- [x] ~~Allow users to specify multiple images upon which to apply the same options~~
-- [ ] Allow users to specify an output file/directory (In Progress)
 - [ ] Allow users to generate a separate standalone palette image
 - [ ] Allow users to generate palette information used by their graphics tools/applications
-- [ ] Add tests
+- [x] ~~Allow users to specify multiple images upon which to apply the same options~~
+- [x] ~~Allow users to specify an output file/directory~~
+- [x] ~~Add tests~~
 
 ## Author
 
