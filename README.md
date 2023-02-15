@@ -70,17 +70,17 @@ The default options will result in:
   - with a height of 256px
   - calculated using k-means clustering
 
-Generate JSON containing the 8 most prevalent colors in the image:
+**Generate JSON containing the 8 most prevalent colors in the image:**
 ```sh
 colorbuddy --output-type json original-image.jpg
 ```
 
-Output the original images with a palette of the 5 most prevalent colors along the bottom:
+**Output the original images with a palette of the 5 most prevalent colors along the bottom:**
 ```sh
 colorbuddy --number-of-colors 5 --output-type original-image.jpg another-image.jpg
 ```
 
-Specify the height of the palette as a percentage of the original image's height:
+**Specify the height of the palette as a percentage of the original image's height:**
 ```sh
 colorbuddy --palette-height 20% original-image.jpg
 ```
