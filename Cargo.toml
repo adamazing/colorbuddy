@@ -15,6 +15,7 @@ image = "~0.24.4"
 mcq = "0.1.0"
 clap = { version= "4.0.8", features = ["derive","suggestions","color"] }
 exoquant = "0.2.0"
+console = "0.15.5"
 
 [[bin]]
 name = "colorbuddy"
