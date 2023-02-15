@@ -1,6 +1,6 @@
 [package]
 name = "colorbuddy"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Adam Henley <adamazing@gmail.com>"]
 edition = "2021"
 description = "Generates a color palette based on an image."

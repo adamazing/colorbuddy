@@ -1,5 +1,5 @@
 <h1 align="center">🎨 Welcome to Color Buddy 🎨</h1>
-<p>
+<p align="center">
   <img alt="Version" src="https://img.shields.io/badge/version-0.1.4-blue.svg?cacheSeconds=2592000" />
   <a href="#" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
@@ -53,13 +53,15 @@ Options:
   -o, --output <OUTPUT>
 
   -t, --output-type <OUTPUT_TYPE>
-          [default: original-image] [possible values: json, original-image]
+          [default: original-image] [possible values: json, original-image, standalone-palette]
   -p, --palette-height <PALETTE_HEIGHT>
           [default: 256]
+  -w, --palette-width <PALETTE_WIDTH>
+
   -h, --help
-          Print help
+          Print help information
   -V, --version
-          Print version
+          Print version information
 ```
 
 ## Examples
@@ -83,6 +85,11 @@ colorbuddy --number-of-colors 5 --output-type original-image.jpg another-image.j
 **Specify the height of the palette as a percentage of the original image's height:**
 ```sh
 colorbuddy --palette-height 20% original-image.jpg
+```
+
+**Specify a width, height, and the standalone-palette output height to create a standalone palette image:**
+```sh
+colorbuddy --palette-height 50px --palette-width 500 original-image.jpg
 ```
 
 ## FAQs

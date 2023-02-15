@@ -12,7 +12,7 @@ use mcq::MMCQ;
 enum OutputType {
     Json,
     OriginalImage,
-    // StandalonePalette,
+    StandalonePalette,
 }
 
 impl fmt::Display for OutputType {
@@ -20,7 +20,7 @@ impl fmt::Display for OutputType {
         match *self {
             OutputType::Json => write!(f, "json"),
             OutputType::OriginalImage => write!(f, "original-image"),
-            // OutputType::StandalonePalette => write!(f, "standalone"),
+            OutputType::StandalonePalette => write!(f, "standalone"),
         }
     }
 }
@@ -64,6 +64,9 @@ struct Args {
     #[arg(short = 'p', long = "palette-height", value_parser = palette_height_parser, default_value = "256")]
     palette_height: PaletteHeight,
 
+    #[arg(short = 'w', long = "palette-width", default_value = None)]
+    palette_width: Option<u32>,
+
     images: Vec<PathBuf>,
 }
 
@@ -79,6 +82,7 @@ fn main() -> Result<()> {
             matches.number_of_colors,
             matches.quantisation_method,
             matches.palette_height,
+            matches.palette_width,
             matches.output_type,
             &output_file_name,
         );
@@ -161,6 +165,7 @@ fn process_image(
     number_of_colors: usize,
     quantisation_method: QuantisationMethod,
     palette_height: PaletteHeight,
+    palette_width: Option<u32>,
     output_type: OutputType,
     output_file_name: &PathBuf,
 ) {
@@ -180,6 +185,10 @@ fn process_image(
         (OutputType::OriginalImage, PaletteHeight::Absolute(a)) => a + input_image_height,
         (OutputType::OriginalImage, PaletteHeight::Percentage(a)) => {
             input_image_height + (a / 100.0 * input_image_height as f32).round() as u32
+        }
+        (OutputType::StandalonePalette, PaletteHeight::Absolute(a)) => a,
+        (OutputType::StandalonePalette, PaletteHeight::Percentage(a)) => {
+            (a / 100.0 * input_image_height as f32).round() as u32
         }
         (OutputType::Json, _) => input_image_height,
     };
@@ -219,7 +228,32 @@ fn process_image(
             "Failed to save: {:?}",
             output_file_name.canonicalize().unwrap()
         );
-    } else {
+    } else if OutputType::StandalonePalette == output_type {
+        let standalone_palette_width = match palette_width {
+            Some(w) => w,
+            None => input_image_width,
+        };
+        let mut imgbuf = image::ImageBuffer::new(standalone_palette_width, total_height);
+
+        let color_width = standalone_palette_width / number_of_colors as u32;
+
+        for y in 0..total_height {
+            for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
+                let x1 = x0 as u32 * color_width;
+                for x2 in 0..color_width {
+                    imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
+                }
+            }
+        }
+
+        let save_result = imgbuf.save(&output_file_name);
+
+        assert!(
+            save_result.is_ok(),
+            "Failed to save: {:?}",
+            output_file_name.canonicalize().unwrap()
+        );
+    } else if OutputType::Json == output_type {
         println!("{{");
         for (i, color) in color_palette.iter().enumerate() {
             println!("\t\"color_{}\": {{", i + 1);
@@ -252,6 +286,10 @@ fn output_file_name(
     let original_image_stem = original_file.file_stem().unwrap().to_str().unwrap();
     let new_extension = match output_type {
         OutputType::OriginalImage => match original_file.extension() {
+            Some(ext) => ext.to_str().unwrap(),
+            None => "png",
+        },
+        OutputType::StandalonePalette => match original_file.extension() {
             Some(ext) => ext.to_str().unwrap(),
             None => "png",
         },
