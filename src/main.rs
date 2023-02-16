@@ -3,6 +3,8 @@ use std::path::*;
 
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
+use console::style;
+use console::Color as ConsoleColor;
 use exoquant::{generate_palette, optimizer, Color, Histogram, SimpleColorSpace};
 use image::{DynamicImage, RgbImage};
 use mcq::ColorNode;
@@ -46,8 +48,106 @@ enum PaletteHeight {
     Percentage(f32),
 }
 
+struct Example {
+    description: String,
+    example: String,
+}
+
+fn examples() -> String {
+    let examples = vec![
+        Example {
+            description: "Generate JSON containing the 8 most prevalent colors in the image:".to_string(),
+            example: "colorbuddy --output-type json original-image.jpg".to_string(),
+        },
+        Example {
+            description: "Output the original images with a palette of the 5 most prevalent colors along the bottom:".to_string(),
+            example: "colorbuddy --number-of-colors 5 --output-type original-image.jpg another-image.jpg".to_string()
+        },
+        Example {
+            description: "Specify the height of the palette as a percentage of the original image's height:".to_string(),
+            example: "colorbuddy --palette-height 20% original-image.jpg".to_string()
+        },
+        Example {
+            description: "Specify a width, height, and the standalone-palette output height to create a standalone palette image:".to_string(),
+            example: "colorbuddy --palette-height 50px --palette-width 500 original-image.jpg".to_string()
+        }
+    ];
+
+    let formatted_examples = examples
+        .iter()
+        .map(|ex| {
+            format!(
+                "  {}\n     {}\n\n",
+                style(ex.description.to_owned()).italic(),
+                style(ex.example.to_owned()).white()
+            )
+        })
+        .collect::<String>();
+
+    format!(
+        "{}\n{}",
+        style("Examples:").underlined(),
+        formatted_examples
+    )
+}
+
+/**
+ * A helper function that returns a styled rainbow string for display.
+ **/
+fn rainbow(s: &str) -> String {
+    let mut colored_string = String::new();
+    let colors = vec![
+        ConsoleColor::Red,
+        ConsoleColor::Magenta,
+        ConsoleColor::Blue,
+        ConsoleColor::Cyan,
+        ConsoleColor::Green,
+        ConsoleColor::Yellow,
+        ConsoleColor::Green,
+        ConsoleColor::Cyan,
+        ConsoleColor::Blue,
+        ConsoleColor::Magenta,
+    ];
+
+    let mut color_index = 0;
+
+    for c in s.chars() {
+        let colored_char = if c.is_ascii_alphabetic() {
+            let color = colors[color_index];
+            color_index = (color_index + 1) % colors.len();
+            style(c.to_string()).fg(color)
+        } else {
+            style(c.to_string())
+        };
+        colored_string.push_str(&colored_char.to_string());
+    }
+
+    colored_string
+}
+
+fn long_about() -> String {
+    format!(
+        "{}
+It uses one of two algorithms to calculate the palette: K-Means, or Median Cut.\n
+You can generate:
+  - a standalone image containing the palette colors
+  - a json file containing the color details in:
+     - HEX notation (e.g. #1a6b3f); and
+     - the individual R,G, and B components;
+  - a copy of the original image with the palette of colors along the bottom of the image.",
+        about()
+    )
+}
+
+fn about() -> String {
+    format!(
+        "\n{}\n\ncolorbuddy is a command line tool to extract a palette of colors from any image.",
+        style(rainbow("Color Buddy 🎨"))
+    )
+}
+
 #[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = about(), long_about = long_about(), after_help = examples())]
 struct Args {
     #[arg(short = 'm', long = "quantisation-method", default_value_t = QuantisationMethod::KMeans)]
     quantisation_method: QuantisationMethod,
@@ -61,12 +161,21 @@ struct Args {
     #[arg(short = 't', long = "output-type", default_value_t = OutputType::OriginalImage)]
     output_type: OutputType,
 
-    #[arg(short = 'p', long = "palette-height", value_parser = palette_height_parser, default_value = "256")]
+    #[arg(short = 'p',
+          long = "palette-height",
+          help = "e.g. 100, 100px, 50%",
+          long_help = "Specify the height in pixels or as a percentage of the image height (e.g. 100, 100px, 50%)",
+          value_parser = palette_height_parser,
+          default_value = "256")]
     palette_height: PaletteHeight,
 
-    #[arg(short = 'w', long = "palette-width", default_value = None)]
+    #[arg(short = 'w',
+          long = "palette-width",
+          help = "Used only when generating a standalone palette. Provide a width in pixels. (e.g. 100, 500)",
+          default_value = None)]
     palette_width: Option<u32>,
 
+    #[arg(help = "Any number of images to process.")]
     images: Vec<PathBuf>,
 }
 
