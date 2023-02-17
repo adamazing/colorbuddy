@@ -1,6 +1,6 @@
 <h1 align="center">🎨 Welcome to Color Buddy 🎨</h1>
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.4-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.6-blue.svg?cacheSeconds=2592000" />
   <a href="#" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
@@ -135,8 +135,9 @@ I will endeavour to respond in a relatively timely manner but provide no guarant
 
 ## Roadmap
 
-- [ ] Allow users to generate a separate standalone palette image
 - [ ] Allow users to generate palette information used by their graphics tools/applications
+- [ ] Refactor and pay down technical debt
+- [x] ~~Allow users to generate a separate standalone palette image~~
 - [x] ~~Allow users to specify multiple images upon which to apply the same options~~
 - [x] ~~Allow users to specify an output file/directory~~
 - [x] ~~Add tests~~
@@ -145,9 +146,9 @@ I will endeavour to respond in a relatively timely manner but provide no guarant
 
 👨 **Adam Henley (he/him)**
 
-* Website: https://adamhenley.com
+* Website: [https://adamhenley.com](https://adamhenley.com)
 * Twitter: [@adamofgreyskull](https://twitter.com/adamofgreyskull)
-* Github: [@adamazing](https://github.com/adamazing)
+* GitHub: [@adamazing](https://github.com/adamazing)
 * LinkedIn: [@adamhenley](https://linkedin.com/in/adamhenley)
 
 ## Show your support
