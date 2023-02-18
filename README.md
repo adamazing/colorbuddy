@@ -146,9 +146,9 @@ I will endeavour to respond in a relatively timely manner but provide no guarant
 
 👨 **Adam Henley (he/him)**
 
-* Website: https://adamhenley.com
+* Website: [https://adamhenley.com](https://adamhenley.com)
 * Twitter: [@adamofgreyskull](https://twitter.com/adamofgreyskull)
-* Github: [@adamazing](https://github.com/adamazing)
+* GitHub: [@adamazing](https://github.com/adamazing)
 * LinkedIn: [@adamhenley](https://linkedin.com/in/adamhenley)
 
 ## Show your support
