@@ -19,6 +19,7 @@
 - [Usage](#usage)
 - [Examples](#examples)
 - [FAQs](#faqs)
+- [Help](#help)
 - [Roadmap](#roadmap)
 - [Author](#author)
 - [Show your support](#show-your-support)
