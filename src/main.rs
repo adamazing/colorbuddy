@@ -367,7 +367,11 @@ fn process_image(
         for (i, color) in color_palette.iter().enumerate() {
             println!("\t\"color_{}\": {{", i + 1);
             println!("\t\t\"r\":\t{},\n\t\t\"g\":\t{},\n\t\t\"b\":\t{},\n\t\t\"a\":\t{},\n\t\t\"hex\":\t\"{}\"", color.r, color.g, color.b, color.a, rgb_to_hex(color.r, color.g, color.b));
-            println!("\n\t}}");
+            if color_palette.len() - 1 != i {
+                println!("\t}},");
+            } else {
+                println!("\t}}");
+            }
         }
         println!("}}");
     }
