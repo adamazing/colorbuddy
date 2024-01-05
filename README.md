@@ -1,14 +1,13 @@
 <h1 align="center">🎨 Welcome to Color Buddy 🎨</h1>
-<p align="center">
+
+<p align="center">  
+  <a href="https://techforpalestine.org/learn-more"><img alt="Free Palestine 🍉🇵🇸" src="https://img.shields.io/badge/%F0%9F%87%B5%F0%9F%87%B8_Ceasefire_Now-techforpalestine.org-000000?labelColor=gray&color=D83838" /></a>
   <img alt="Version" src="https://img.shields.io/badge/version-0.1.6-blue.svg?cacheSeconds=2592000" />
   <a href="#" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
-  <a href="https://twitter.com/adamofgreyskull" target="_blank">
-    <img alt="Twitter: adamofgreyskull" src="https://img.shields.io/twitter/follow/adamofgreyskull.svg?style=social" />
-  </a>
 </p>
-
+ 
 > Color Buddy is a command line tool that can generate a color palette from an image.
 
 ## Contents
