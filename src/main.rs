@@ -2,7 +2,7 @@ use std::{fmt, fmt::Write};
 use std::path::*;
 
 use serde::{Deserialize, Serialize};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::{Parser, ValueEnum};
 use console::style;
 use console::Color as ConsoleColor;
@@ -301,7 +301,7 @@ struct Args {
           default_value = None)]
     palette_width: Option<u32>,
 
-    #[arg(help = "Any number of images to process.")]
+    #[arg(help = "Any number of images to process.", required = true)]
     images: Vec<PathBuf>,
 }
 
@@ -322,6 +322,10 @@ struct Args {
 /// image processing errors are logged but don't stop execution.
 fn main() -> Result<()> {
     let matches = Args::parse();
+
+    if matches.images.is_empty() {
+        return Err(anyhow!("No images specified. Please provide at least one image file to process."));
+    }
 
     for image in &matches.images {
         let output_file_name =
@@ -602,16 +606,13 @@ fn extract_palette(
 ) -> Result<Vec<Color>> {
     match quantisation_method {
         QuantisationMethod::MedianCut => {
-            let color_count = number_of_colors.try_into()
-                .with_context(|| "Number of colors is too large for median cut algorithm")?;
-
             // Convert pixels directly to RGBA format without cloning the entire image
             let rgba_data: Vec<u8> = input_image
                 .pixels()
                 .flat_map(|pixel| [pixel[0], pixel[1], pixel[2], DEFAULT_ALPHA_COLOR])
                 .collect();
 
-            let mcq = MMCQ::from_pixels_u8_rgba(&rgba_data, color_count);
+            let mcq = MMCQ::from_pixels_u8_rgba(&rgba_data, number_of_colors.into());
             Ok(mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec()))
         }
         QuantisationMethod::KMeans => {
@@ -628,7 +629,7 @@ fn extract_palette(
                 &histogram,
                 &SimpleColorSpace::default(),
                 &optimizer::KMeans,
-                number_of_colors.try_into().with_context(|| "Number of colors is too large for K-Means algorithm")?,
+                number_of_colors.into()
             ))
         }
     }
