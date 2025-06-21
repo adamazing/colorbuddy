@@ -121,6 +121,7 @@ fn examples() -> String {
 /// # Examples
 ///
 /// ```
+/// # use crate::rainbow;
 /// let colored = rainbow("Color Buddy");
 /// println!("{}", colored); // Displays with rainbow colors
 /// ```
@@ -283,8 +284,13 @@ fn main() -> Result<()> {
 /// # Examples
 ///
 /// ```
+/// # use crate::{mcq_color_nodes_to_exoquant_colors, DEFAULT_ALPHA_COLOR};
+/// # use mcq::ColorNode;
+/// # use exoquant::Color;
 /// let mcq_colors = vec![ColorNode { red: 255, grn: 0, blu: 0, rgb: 0, cnt: 1 }];
 /// let exoquant_colors = mcq_color_nodes_to_exoquant_colors(mcq_colors);
+/// assert_eq!(exoquant_colors[0].r, 255);
+/// assert_eq!(exoquant_colors[0].a, DEFAULT_ALPHA_COLOR);
 /// ```
 fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Color> {
     mcq_color_nodes
@@ -330,7 +336,7 @@ fn save_original_with_palette(
     input_image_height: u32,
     total_height: u32,
     number_of_colors: usize,
-    output_file_name: &PathBuf,
+    output_file_name: &Path,
 ) -> Result<()> {
     // Create an image buffer big enough to hold the output image
     let mut imgbuf = image::ImageBuffer::new(input_image_width, total_height);
@@ -388,7 +394,7 @@ fn save_standalone_palette(
     palette_width: u32,
     palette_height: u32,
     number_of_colors: usize,
-    output_file_name: &PathBuf,
+    output_file_name: &Path,
 ) -> Result<()> {
     let mut imgbuf = image::ImageBuffer::new(palette_width, palette_height);
     let color_width = palette_width / number_of_colors as u32;
@@ -480,8 +486,11 @@ fn output_json_palette(color_palette: &[Color]) -> Result<()> {
 /// # Examples
 ///
 /// ```
+/// # use crate::{extract_palette, QuantisationMethod};
+/// # use image::RgbImage;
+/// # let image = RgbImage::new(10, 10);
 /// let palette = extract_palette(&image, 8, QuantisationMethod::KMeans)?;
-/// assert_eq!(palette.len(), 8);
+/// assert!(palette.len() <= 8);
 /// ```
 fn extract_palette(
     input_image: &RgbImage,
@@ -553,13 +562,13 @@ fn extract_palette(
 ///
 /// Each error includes context about which operation failed and the file path involved.
 fn process_image(
-    file: &PathBuf,
+    file: &Path,
     number_of_colors: usize,
     quantisation_method: QuantisationMethod,
     palette_height: PaletteHeight,
     palette_width: Option<u32>,
     output_type: OutputType,
-    output_file_name: &PathBuf,
+    output_file_name: &Path,
 ) -> Result<()> {
     let dynamic_image = image::open(file)
         .with_context(|| format!("Failed to open image: {}", file.display()))?;
@@ -638,6 +647,9 @@ fn process_image(
 /// # Examples
 ///
 /// ```
+/// use std::path::{Path, PathBuf};
+/// # use crate::{output_file_name, OutputType};
+///
 /// let original = Path::new("photo.jpg");
 ///
 /// // No output path specified, original image type
@@ -699,6 +711,7 @@ fn output_file_name(
 /// # Examples
 ///
 /// ```
+/// # use crate::rgb_to_hex;
 /// assert_eq!(rgb_to_hex(255, 128, 64), "#ff8040");
 /// assert_eq!(rgb_to_hex(0, 0, 0), "#000000");
 /// assert_eq!(rgb_to_hex(255, 255, 255), "#ffffff");
@@ -739,6 +752,7 @@ fn rgb_to_hex(red: u8, green: u8, blue: u8) -> String {
 /// # Examples
 ///
 /// ```
+/// # use crate::{palette_height_parser, PaletteHeight};
 /// assert_eq!(palette_height_parser("100"), Ok(PaletteHeight::Absolute(100)));
 /// assert_eq!(palette_height_parser("50%"), Ok(PaletteHeight::Percentage(50.0)));
 /// assert!(palette_height_parser("150%").is_err());
