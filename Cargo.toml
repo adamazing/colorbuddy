@@ -16,6 +16,9 @@ mcq = "0.1.0"
 clap = { version= "4.0.8", features = ["derive","suggestions","color"] }
 exoquant = "0.2.0"
 console = "0.15.5"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+chrono = {version= "0.4.41", features = ["serde"]}
 
 [[bin]]
 name = "colorbuddy"

@@ -1,6 +1,7 @@
-use std::fmt;
+use std::{fmt, fmt::Write};
 use std::path::*;
 
+use serde::{Deserialize, Serialize};
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
 use console::style;
@@ -14,6 +15,82 @@ const DEFAULT_PALETTE_HEIGHT: &str = "256";
 const DEFAULT_NUMBER_OF_COLORS: &str = "8";
 const DEFAULT_ALPHA_COLOR: u8 = 0xff;
 
+/// Represents a single color with RGB, alpha, and hex values
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ColorInfo {
+    /// Red component (0-255)
+    pub r: u8,
+    /// Green component (0-255)
+    pub g: u8,
+    /// Blue component (0-255)
+    pub b: u8,
+    /// Alpha component (0-255)
+    pub a: u8,
+    /// Hexadecimal representation (e.g., "#ff8040")
+    pub hex: String,
+}
+
+impl ColorInfo {
+    /// Creates a new ColorInfo from an exoquant Color
+    pub fn from_color(color: &Color) -> Self {
+        Self {
+            r: color.r,
+            g: color.g,
+            b: color.b,
+            a: color.a,
+            hex: rgb_to_hex(color.r, color.g, color.b),
+        }
+    }
+}
+
+/// Represents the complete palette output structure
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaletteOutput {
+    /// Metadata about the palette extraction
+    pub metadata: PaletteMetadata,
+    /// The extracted colors
+    pub colors: Vec<ColorInfo>,
+}
+
+// Even simpler approach - let chrono handle the serialization automatically:
+impl PaletteMetadata {
+    pub fn new(
+        requested_colors: usize,
+        extracted_colors: usize,
+        quantization_method: String,
+        image_dimensions: ImageDimensions,
+    ) -> Self {
+        Self {
+            requested_colors,
+            extracted_colors,
+            quantization_method,
+            image_dimensions,
+            generated_at: chrono::Utc::now(),
+        }
+    }
+}
+
+/// Metadata about how the palette was generated
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaletteMetadata {
+    /// Number of colors requested
+    pub requested_colors: usize,
+    /// Number of colors actually extracted
+    pub extracted_colors: usize,
+    /// Quantization method used
+    pub quantization_method: String,
+    /// Source image dimensions
+    pub image_dimensions: ImageDimensions,
+    /// Timestamp when palette was generated (using chrono's built-in serialization)
+    pub generated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Image dimensions for metadata
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ImageDimensions {
+    pub width: u32,
+    pub height: u32,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, ValueEnum)]
 enum OutputType {
@@ -67,7 +144,7 @@ struct Example {
 ///
 /// A formatted string containing styled examples for display in CLI help.
 fn examples() -> String {
-    let examples = vec![
+    let examples = [
         Example {
             description: "Generate JSON containing the 8 most prevalent colors in the image:".to_string(),
             example: "colorbuddy --output-type json original-image.jpg".to_string(),
@@ -88,14 +165,15 @@ fn examples() -> String {
 
     let formatted_examples = examples
         .iter()
-        .map(|ex| {
-            format!(
+        .fold(String::new(), |mut out, ex| {
+            let _ = write!(
+                out,
                 "  {}\n     {}\n\n",
                 style(ex.description.to_owned()).italic(),
                 style(ex.example.to_owned()).white()
-            )
-        })
-        .collect::<String>();
+            );
+            out
+        });
 
     format!(
         "{}\n{}",
@@ -127,7 +205,7 @@ fn examples() -> String {
 /// ```
 fn rainbow(s: &str) -> String {
     let mut colored_string = String::new();
-    let colors = vec![
+    let colors = [
         ConsoleColor::Red,
         ConsoleColor::Magenta,
         ConsoleColor::Blue,
@@ -423,40 +501,64 @@ fn save_standalone_palette(
 /// # Arguments
 ///
 /// * `color_palette` - Slice of colors to output as JSON
+/// * `quantization_method` - The method used to extract the palette
+/// * `requested_colors` - Number of colors originally requested
+/// * `image_dimensions` - Dimensions of the source image
 ///
 /// # Returns
 ///
 /// * `Ok(())` - JSON output completed successfully
-/// * `Err` - Currently never fails, but returns Result for consistency
+/// * `Err` - If JSON serialization fails
 ///
-/// # Output Format
+/// # Examples
 ///
 /// ```json
 /// {
-///     "color_1": {
-///         "r": 255,
-///         "g": 128,
-///         "b": 64,
-///         "a": 255,
-///         "hex": "#ff8040"
+///   "metadata": {
+///     "requested_colors": 8,
+///     "extracted_colors": 6,
+///     "quantization_method": "k-means",
+///     "image_dimensions": { "width": 1920, "height": 1080 },
+///     "generated_at": "2024-01-15T10:30:00Z"
+///   },
+///   "colors": [
+///     {
+///       "r": 255,
+///       "g": 128,
+///       "b": 64,
+///       "a": 255,
+///       "hex": "#ff8040"
 ///     }
+///   ]
 /// }
 /// ```
-fn output_json_palette(color_palette: &[Color]) -> Result<()> {
-    println!("{{");
-    for (i, color) in color_palette.iter().enumerate() {
-        println!("\t\"color_{}\": {{", i + 1);
-        println!(
-            "\t\t\"r\":\t{},\n\t\t\"g\":\t{},\n\t\t\"b\":\t{},\n\t\t\"a\":\t{},\n\t\t\"hex\":\t\"{}\"",
-            color.r, color.g, color.b, color.a, rgb_to_hex(color.r, color.g, color.b)
-        );
-        if color_palette.len() - 1 != i {
-            println!("\t}},");
-        } else {
-            println!("\t}}");
-        }
-    }
-    println!("}}");
+fn output_json_palette(
+    color_palette: &[Color],
+    quantization_method: QuantisationMethod,
+    requested_colors: usize,
+    image_dimensions: (u32, u32),
+) -> Result<()> {
+    let colors: Vec<ColorInfo> = color_palette
+        .iter()
+        .map(ColorInfo::from_color)
+        .collect();
+
+    let metadata = PaletteMetadata {
+        requested_colors,
+        extracted_colors: colors.len(),
+        quantization_method: quantization_method.to_string(),
+        image_dimensions: ImageDimensions {
+            width: image_dimensions.0,
+            height: image_dimensions.1,
+        },
+        generated_at: chrono::Utc::now(),
+    };
+
+    let output = PaletteOutput { metadata, colors };
+    let json = serde_json::to_string_pretty(&output)
+        .context("Failed to serialize palette to JSON")?;
+
+    println!("{}", json);
     Ok(())
 }
 
@@ -613,7 +715,12 @@ fn process_image(
             )?;
         }
         OutputType::Json => {
-            output_json_palette(&color_palette)?;
+            output_json_palette(
+                    &color_palette,
+                    quantisation_method,
+                    number_of_colors,
+                    (input_image_width, input_image_height),
+                )?;
         }
     }
 
