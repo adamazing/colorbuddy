@@ -55,8 +55,8 @@ pub struct PaletteOutput {
 // Even simpler approach - let chrono handle the serialization automatically:
 impl PaletteMetadata {
     pub fn new(
-        requested_colors: usize,
-        extracted_colors: usize,
+        requested_colors: u16,
+        extracted_colors: u16,
         quantization_method: String,
         image_dimensions: ImageDimensions,
     ) -> Self {
@@ -74,9 +74,9 @@ impl PaletteMetadata {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaletteMetadata {
     /// Number of colors requested
-    pub requested_colors: usize,
+    pub requested_colors: u16,
     /// Number of colors actually extracted
-    pub extracted_colors: usize,
+    pub extracted_colors: u16,
     /// Quantization method used
     pub quantization_method: String,
     /// Source image dimensions
@@ -277,8 +277,9 @@ struct Args {
     #[arg(short = 'm', long = "quantisation-method", default_value_t = QuantisationMethod::KMeans)]
     quantisation_method: QuantisationMethod,
 
-    #[arg(short = 'n', long = "number-of-colors", default_value = DEFAULT_NUMBER_OF_COLORS)]
-    number_of_colors: usize,
+    #[arg(short = 'n', long = "number-of-colors", default_value = DEFAULT_NUMBER_OF_COLORS,
+        value_parser = clap::value_parser!(u16).range(1..))]
+    number_of_colors: u16,
 
     #[arg(short = 'o', long = "output", default_value = None)]
     output: Option<PathBuf>,
@@ -413,7 +414,7 @@ fn save_original_with_palette(
     input_image_width: u32,
     input_image_height: u32,
     total_height: u32,
-    number_of_colors: usize,
+    number_of_colors: u16,
     output_file_name: &Path,
 ) -> Result<()> {
     // Create an image buffer big enough to hold the output image
@@ -431,7 +432,7 @@ fn save_original_with_palette(
 
     // Add the palette strip
     for y in input_image_height..total_height {
-        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
+        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors.into()) {
             let x1 = x0 as u32 * color_width;
             for x2 in 0..color_width {
                 imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
@@ -471,14 +472,14 @@ fn save_standalone_palette(
     color_palette: &[Color],
     palette_width: u32,
     palette_height: u32,
-    number_of_colors: usize,
+    number_of_colors: u16,
     output_file_name: &Path,
 ) -> Result<()> {
     let mut imgbuf = image::ImageBuffer::new(palette_width, palette_height);
     let color_width = palette_width / number_of_colors as u32;
 
     for y in 0..palette_height {
-        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
+        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors.into()) {
             let x1 = x0 as u32 * color_width;
             for x2 in 0..color_width {
                 imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
@@ -535,7 +536,7 @@ fn save_standalone_palette(
 fn output_json_palette(
     color_palette: &[Color],
     quantization_method: QuantisationMethod,
-    requested_colors: usize,
+    requested_colors: u16,
     image_dimensions: (u32, u32),
 ) -> Result<()> {
     let colors: Vec<ColorInfo> = color_palette
@@ -545,7 +546,7 @@ fn output_json_palette(
 
     let metadata = PaletteMetadata {
         requested_colors,
-        extracted_colors: colors.len(),
+        extracted_colors: colors.len().try_into().with_context(|| "Failed to convert number of colors to u16")?,
         quantization_method: quantization_method.to_string(),
         image_dimensions: ImageDimensions {
             width: image_dimensions.0,
@@ -596,7 +597,7 @@ fn output_json_palette(
 /// ```
 fn extract_palette(
     input_image: &RgbImage,
-    number_of_colors: usize,
+    number_of_colors: u16,
     quantisation_method: QuantisationMethod,
 ) -> Result<Vec<Color>> {
     match quantisation_method {
@@ -627,7 +628,7 @@ fn extract_palette(
                 &histogram,
                 &SimpleColorSpace::default(),
                 &optimizer::KMeans,
-                number_of_colors,
+                number_of_colors.try_into().with_context(|| "Number of colors is too large for K-Means algorithm")?,
             ))
         }
     }
@@ -665,7 +666,7 @@ fn extract_palette(
 /// Each error includes context about which operation failed and the file path involved.
 fn process_image(
     file: &Path,
-    number_of_colors: usize,
+    number_of_colors: u16,
     quantisation_method: QuantisationMethod,
     palette_height: PaletteHeight,
     palette_width: Option<u32>,
