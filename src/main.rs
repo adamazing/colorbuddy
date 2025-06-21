@@ -1,14 +1,19 @@
 use std::fmt;
 use std::path::*;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
 use console::style;
 use console::Color as ConsoleColor;
 use exoquant::{generate_palette, optimizer, Color, Histogram, SimpleColorSpace};
-use image::{DynamicImage, RgbImage};
+use image::RgbImage;
 use mcq::ColorNode;
 use mcq::MMCQ;
+
+const DEFAULT_PALETTE_HEIGHT: &str = "256";
+const DEFAULT_NUMBER_OF_COLORS: &str = "8";
+const DEFAULT_ALPHA_COLOR: u8 = 0xff;
+
 
 #[derive(Clone, Copy, Debug, PartialEq, ValueEnum)]
 enum OutputType {
@@ -152,7 +157,7 @@ struct Args {
     #[arg(short = 'm', long = "quantisation-method", default_value_t = QuantisationMethod::KMeans)]
     quantisation_method: QuantisationMethod,
 
-    #[arg(short = 'n', long = "number-of-colors", default_value = "8")]
+    #[arg(short = 'n', long = "number-of-colors", default_value = DEFAULT_NUMBER_OF_COLORS)]
     number_of_colors: usize,
 
     #[arg(short = 'o', long = "output", default_value = None)]
@@ -166,7 +171,7 @@ struct Args {
           help = "e.g. 100, 100px, 50%",
           long_help = "Specify the height in pixels or as a percentage of the image height (e.g. 100, 100px, 50%)",
           value_parser = palette_height_parser,
-          default_value = "256")]
+          default_value = DEFAULT_PALETTE_HEIGHT)]
     palette_height: PaletteHeight,
 
     #[arg(short = 'w',
@@ -186,7 +191,7 @@ fn main() -> Result<()> {
         let output_file_name =
             output_file_name(image, matches.output.as_ref(), matches.output_type);
 
-        process_image(
+        if let Err(e) = process_image(
             image,
             matches.number_of_colors,
             matches.quantisation_method,
@@ -194,7 +199,11 @@ fn main() -> Result<()> {
             matches.palette_width,
             matches.output_type,
             &output_file_name,
-        );
+        ) {
+            eprintln!("Error processing image {}: {}", image.display(), e);
+            // Continue processing other images instead of failing completely
+            continue;
+        };
     }
 
     Ok(())
@@ -211,11 +220,91 @@ fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Co
             r: c.red,
             g: c.grn,
             b: c.blu,
-            a: 0xff,
+            a: DEFAULT_ALPHA_COLOR,
         })
         .collect()
 }
 
+fn save_original_with_palette(
+    input_image: &RgbImage,
+    color_palette: &[Color],
+    input_image_width: u32,
+    input_image_height: u32,
+    total_height: u32,
+    number_of_colors: usize,
+    output_file_name: &PathBuf,
+) -> Result<()> {
+    // Create an image buffer big enough to hold the output image
+    let mut imgbuf = image::ImageBuffer::new(input_image_width, total_height);
+
+    // The width of each color in the palette strip
+    let color_width = input_image_width / number_of_colors as u32;
+
+    // Clone the original image into the output buffer
+    for x in 0..input_image_width {
+        for y in 0..input_image_height {
+            imgbuf.put_pixel(x, y, *input_image.get_pixel(x, y));
+        }
+    }
+
+    // Add the palette strip
+    for y in input_image_height..total_height {
+        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
+            let x1 = x0 as u32 * color_width;
+            for x2 in 0..color_width {
+                imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
+            }
+        }
+    }
+
+    imgbuf.save(output_file_name)
+        .with_context(|| format!("Failed to save image to {}", output_file_name.display()))?;
+
+    Ok(())
+}
+
+fn save_standalone_palette(
+    color_palette: &[Color],
+    palette_width: u32,
+    palette_height: u32,
+    number_of_colors: usize,
+    output_file_name: &PathBuf,
+) -> Result<()> {
+    let mut imgbuf = image::ImageBuffer::new(palette_width, palette_height);
+    let color_width = palette_width / number_of_colors as u32;
+
+    for y in 0..palette_height {
+        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
+            let x1 = x0 as u32 * color_width;
+            for x2 in 0..color_width {
+                imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
+            }
+        }
+    }
+
+    imgbuf.save(output_file_name)
+        .with_context(|| format!("Failed to save palette to {}", output_file_name.display()))?;
+
+    Ok(())
+}
+
+fn output_json_palette(color_palette: &[Color]) -> Result<()> {
+    println!("{{");
+    for (i, color) in color_palette.iter().enumerate() {
+        println!("\t\"color_{}\": {{", i + 1);
+        println!(
+            "\t\t\"r\":\t{},\n\t\t\"g\":\t{},\n\t\t\"b\":\t{},\n\t\t\"a\":\t{},\n\t\t\"hex\":\t\"{}\"",
+            color.r, color.g, color.b, color.a, rgb_to_hex(color.r, color.g, color.b)
+        );
+        if color_palette.len() - 1 != i {
+            println!("\t}},");
+        } else {
+            println!("\t}}");
+        }
+    }
+    println!("}}");
+    Ok(())
+}
 /**
  * This function abstracts the extraction of the Vector of `Color`s depending on the chosen
  * quantisation method.
@@ -228,14 +317,14 @@ fn extract_palette(
     input_image: &RgbImage,
     number_of_colors: usize,
     quantisation_method: QuantisationMethod,
-) -> Vec<Color> {
+) -> Result<Vec<Color>> {
     match quantisation_method {
         QuantisationMethod::MedianCut => {
             let data = input_image.clone().into_vec();
             let mcq =
                 MMCQ::from_pixels_u8_rgba(data.as_slice(), number_of_colors.try_into().unwrap());
 
-            mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec())
+            Ok(mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec()))
         }
         QuantisationMethod::KMeans => {
             let histogram: Histogram = input_image
@@ -247,12 +336,12 @@ fn extract_palette(
                     a: 0xff,
                 })
                 .collect();
-            generate_palette(
+            Ok(generate_palette(
                 &histogram,
                 &SimpleColorSpace::default(),
                 &optimizer::KMeans,
                 number_of_colors,
-            )
+            ))
         }
     }
 }
@@ -277,15 +366,9 @@ fn process_image(
     palette_width: Option<u32>,
     output_type: OutputType,
     output_file_name: &PathBuf,
-) {
-    let dynamic_image: DynamicImage;
-
-    if let Ok(img) = image::open(file) {
-        dynamic_image = img;
-    } else {
-        eprintln!("Error opening image: {}", file.to_str().unwrap());
-        return;
-    };
+) -> Result<()> {
+    let dynamic_image = image::open(file)
+        .with_context(|| format!("Failed to open image: {}", file.display()))?;
 
     let input_image = dynamic_image.to_rgb8();
     let (input_image_width, input_image_height) = input_image.dimensions();
@@ -302,79 +385,36 @@ fn process_image(
         (OutputType::Json, _) => input_image_height,
     };
 
-    let color_palette: Vec<Color> =
-        extract_palette(&input_image, number_of_colors, quantisation_method);
+    let color_palette: Vec<Color> = extract_palette(&input_image, number_of_colors, quantisation_method)?;
 
-    /*
-     *  Output to the original image: */
-    if OutputType::OriginalImage == output_type {
-        // Create an image buffer big enough to hold the output image
-        let mut imgbuf = image::ImageBuffer::new(input_image_width, total_height);
-
-        // The width of each color in the palette strip
-        let color_width = input_image_width / number_of_colors as u32;
-
-        // This clones the image we're processing into the output buffer
-        for x in 0..input_image_width {
-            for y in 0..input_image_height {
-                imgbuf.put_pixel(x, y, *input_image.get_pixel(x, y));
-            }
+    match output_type {
+        OutputType::OriginalImage => {
+            save_original_with_palette(
+                &input_image,
+                &color_palette,
+                input_image_width,
+                input_image_height,
+                total_height,
+                number_of_colors,
+                output_file_name,
+            )?;
         }
-
-        for y in (input_image_height)..(total_height) {
-            for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
-                let x1 = x0 as u32 * color_width;
-                for x2 in 0..color_width {
-                    imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
-                }
-            }
+        OutputType::StandalonePalette => {
+            let standalone_palette_width = palette_width.unwrap_or(input_image_width);
+            save_standalone_palette(
+                &color_palette,
+                standalone_palette_width,
+                total_height,
+                number_of_colors,
+                output_file_name,
+            )?;
         }
-
-        let save_result = imgbuf.save(&output_file_name);
-
-        assert!(
-            save_result.is_ok(),
-            "Failed to save: {:?}",
-            output_file_name.canonicalize().unwrap()
-        );
-    } else if OutputType::StandalonePalette == output_type {
-        let standalone_palette_width = match palette_width {
-            Some(w) => w,
-            None => input_image_width,
-        };
-        let mut imgbuf = image::ImageBuffer::new(standalone_palette_width, total_height);
-
-        let color_width = standalone_palette_width / number_of_colors as u32;
-
-        for y in 0..total_height {
-            for (x0, q) in color_palette.iter().enumerate().take(number_of_colors) {
-                let x1 = x0 as u32 * color_width;
-                for x2 in 0..color_width {
-                    imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
-                }
-            }
+        OutputType::Json => {
+            output_json_palette(&color_palette)?;
         }
-
-        let save_result = imgbuf.save(&output_file_name);
-
-        assert!(
-            save_result.is_ok(),
-            "Failed to save: {:?}",
-            output_file_name.canonicalize().unwrap()
-        );
-    } else if OutputType::Json == output_type {
-        println!("{{");
-        for (i, color) in color_palette.iter().enumerate() {
-            println!("\t\"color_{}\": {{", i + 1);
-            println!("\t\t\"r\":\t{},\n\t\t\"g\":\t{},\n\t\t\"b\":\t{},\n\t\t\"a\":\t{},\n\t\t\"hex\":\t\"{}\"", color.r, color.g, color.b, color.a, rgb_to_hex(color.r, color.g, color.b));
-            if color_palette.len() - 1 != i {
-                println!("\t}},");
-            } else {
-                println!("\t}}");
-            }
-        }
-        println!("}}");
     }
+
+    Ok(())
 }
 
 /**
