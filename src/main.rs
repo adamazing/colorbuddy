@@ -58,6 +58,14 @@ struct Example {
     example: String,
 }
 
+/// Generates example usage text for the CLI help system.
+///
+/// Creates formatted examples showing different ways to use the colorbuddy tool,
+/// including JSON output, image output with palettes, and various sizing options.
+///
+/// # Returns
+///
+/// A formatted string containing styled examples for display in CLI help.
 fn examples() -> String {
     let examples = vec![
         Example {
@@ -96,9 +104,26 @@ fn examples() -> String {
     )
 }
 
-/**
- * A helper function that returns a styled rainbow string for display.
- **/
+/// Creates a rainbow-colored string for terminal display.
+///
+/// Takes a string and applies cycling colors to each alphabetic character,
+/// creating a rainbow effect for terminal output. Non-alphabetic characters
+/// remain unstyled.
+///
+/// # Arguments
+///
+/// * `s` - The string to apply rainbow coloring to
+///
+/// # Returns
+///
+/// A styled string with rainbow coloring applied to alphabetic characters.
+///
+/// # Examples
+///
+/// ```
+/// let colored = rainbow("Color Buddy");
+/// println!("{}", colored); // Displays with rainbow colors
+/// ```
 fn rainbow(s: &str) -> String {
     let mut colored_string = String::new();
     let colors = vec![
@@ -130,6 +155,14 @@ fn rainbow(s: &str) -> String {
     colored_string
 }
 
+/// Generates the long description text for the CLI about section.
+///
+/// Creates a detailed description of the tool's capabilities, including
+/// supported algorithms and output formats.
+///
+/// # Returns
+///
+/// A formatted string containing the complete tool description.
 fn long_about() -> String {
     format!(
         "{}
@@ -144,6 +177,14 @@ You can generate:
     )
 }
 
+/// Generates the short about text for the CLI.
+///
+/// Creates a brief description with the tool name and basic purpose,
+/// including a rainbow-styled title.
+///
+/// # Returns
+///
+/// A formatted string containing the short tool description.
 fn about() -> String {
     format!(
         "\n{}\n\ncolorbuddy is a command line tool to extract a palette of colors from any image.",
@@ -184,6 +225,21 @@ struct Args {
     images: Vec<PathBuf>,
 }
 
+/// Main entry point for the Color Buddy application.
+///
+/// Parses command line arguments and processes each specified image file.
+/// Continues processing remaining images even if individual files fail,
+/// logging errors to stderr.
+///
+/// # Returns
+///
+/// * `Ok(())` - All images processed successfully (or with handled errors)
+/// * `Err` - Only if argument parsing fails
+///
+/// # Errors
+///
+/// Returns an error if command line argument parsing fails. Individual
+/// image processing errors are logged but don't stop execution.
 fn main() -> Result<()> {
     let matches = Args::parse();
 
@@ -209,10 +265,27 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/**
- * Internally we deal with a Vector<Color> (`Color` provided by the exoquant crate).
- * This helper function converts a Vector of MCQ `ColorNode`s into a Vector of exoquant `Color`s.
- */
+/// Converts MCQ ColorNode objects to exoquant Color objects.
+///
+/// The MCQ (Modified Median Cut Quantization) library uses `ColorNode` objects,
+/// while the exoquant library uses `Color` objects. This function performs
+/// the conversion between these two representations.
+///
+/// # Arguments
+///
+/// * `mcq_color_nodes` - Vector of ColorNode objects from the MCQ library
+///
+/// # Returns
+///
+/// Vector of Color objects compatible with the exoquant library, with
+/// alpha channel set to the default value.
+///
+/// # Examples
+///
+/// ```
+/// let mcq_colors = vec![ColorNode { red: 255, grn: 0, blu: 0, rgb: 0, cnt: 1 }];
+/// let exoquant_colors = mcq_color_nodes_to_exoquant_colors(mcq_colors);
+/// ```
 fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Color> {
     mcq_color_nodes
         .iter()
@@ -225,6 +298,31 @@ fn mcq_color_nodes_to_exoquant_colors(mcq_color_nodes: Vec<ColorNode>) -> Vec<Co
         .collect()
 }
 
+/// Saves the original image with a color palette strip appended to the bottom.
+///
+/// Creates a new image containing the original image with a horizontal strip
+/// of palette colors along the bottom. Each color in the palette occupies
+/// an equal width portion of the strip.
+///
+/// # Arguments
+///
+/// * `input_image` - The original RGB image to process
+/// * `color_palette` - Slice of colors to display in the palette strip
+/// * `input_image_width` - Width of the original image in pixels
+/// * `input_image_height` - Height of the original image in pixels
+/// * `total_height` - Total height including the palette strip
+/// * `number_of_colors` - Number of colors from the palette to display
+/// * `output_file_name` - Path where the output image should be saved
+///
+/// # Returns
+///
+/// * `Ok(())` - Image saved successfully
+/// * `Err` - If image saving fails
+///
+/// # Errors
+///
+/// Returns an error if the image cannot be saved to the specified path,
+/// with context about the failed operation.
 fn save_original_with_palette(
     input_image: &RgbImage,
     color_palette: &[Color],
@@ -263,6 +361,28 @@ fn save_original_with_palette(
     Ok(())
 }
 
+/// Saves a standalone color palette as an image file.
+///
+/// Creates an image containing only the color palette, with each color
+/// occupying an equal width vertical strip across the entire image height.
+///
+/// # Arguments
+///
+/// * `color_palette` - Slice of colors to display in the palette
+/// * `palette_width` - Width of the palette image in pixels
+/// * `palette_height` - Height of the palette image in pixels
+/// * `number_of_colors` - Number of colors from the palette to display
+/// * `output_file_name` - Path where the palette image should be saved
+///
+/// # Returns
+///
+/// * `Ok(())` - Palette image saved successfully
+/// * `Err` - If image saving fails
+///
+/// # Errors
+///
+/// Returns an error if the palette image cannot be saved to the specified path,
+/// with context about the failed operation.
 fn save_standalone_palette(
     color_palette: &[Color],
     palette_width: u32,
@@ -288,6 +408,34 @@ fn save_standalone_palette(
     Ok(())
 }
 
+/// Outputs the color palette as formatted JSON to stdout.
+///
+/// Prints a JSON object containing color information for each palette color,
+/// including RGB values, alpha channel, and hexadecimal representation.
+/// The JSON is formatted with indentation for readability.
+///
+/// # Arguments
+///
+/// * `color_palette` - Slice of colors to output as JSON
+///
+/// # Returns
+///
+/// * `Ok(())` - JSON output completed successfully
+/// * `Err` - Currently never fails, but returns Result for consistency
+///
+/// # Output Format
+///
+/// ```json
+/// {
+///     "color_1": {
+///         "r": 255,
+///         "g": 128,
+///         "b": 64,
+///         "a": 255,
+///         "hex": "#ff8040"
+///     }
+/// }
+/// ```
 fn output_json_palette(color_palette: &[Color]) -> Result<()> {
     println!("{{");
     for (i, color) in color_palette.iter().enumerate() {
@@ -305,14 +453,36 @@ fn output_json_palette(color_palette: &[Color]) -> Result<()> {
     println!("}}");
     Ok(())
 }
-/**
- * This function abstracts the extraction of the Vector of `Color`s depending on the chosen
- * quantisation method.
- *
- * [&RgbImage] The image to be processed.
- * [usize] The number of colors required for the palette.
- * [QuantisationMethod] The quantisation method to be used.
- **/
+
+/// Extracts a color palette from an RGB image using the specified quantization method.
+///
+/// Uses either K-Means clustering or Median Cut quantization to extract the most
+/// representative colors from the input image. The function is optimized to avoid
+/// unnecessary memory allocation and cloning.
+///
+/// # Arguments
+///
+/// * `input_image` - The RGB image to analyze for color extraction
+/// * `number_of_colors` - Number of colors to include in the extracted palette
+/// * `quantisation_method` - Algorithm to use for color quantization
+///
+/// # Returns
+///
+/// * `Ok(Vec<Color>)` - Vector of extracted palette colors
+/// * `Err` - If quantization fails or number_of_colors is invalid
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The number of colors is too large for the quantization algorithm
+/// - The quantization process fails
+///
+/// # Examples
+///
+/// ```
+/// let palette = extract_palette(&image, 8, QuantisationMethod::KMeans)?;
+/// assert_eq!(palette.len(), 8);
+/// ```
 fn extract_palette(
     input_image: &RgbImage,
     number_of_colors: usize,
@@ -320,10 +490,16 @@ fn extract_palette(
 ) -> Result<Vec<Color>> {
     match quantisation_method {
         QuantisationMethod::MedianCut => {
-            let data = input_image.clone().into_vec();
-            let mcq =
-                MMCQ::from_pixels_u8_rgba(data.as_slice(), number_of_colors.try_into().unwrap());
+            let color_count = number_of_colors.try_into()
+                .with_context(|| "Number of colors is too large for median cut algorithm")?;
 
+            // Convert pixels directly to RGBA format without cloning the entire image
+            let rgba_data: Vec<u8> = input_image
+                .pixels()
+                .flat_map(|pixel| [pixel[0], pixel[1], pixel[2], DEFAULT_ALPHA_COLOR])
+                .collect();
+
+            let mcq = MMCQ::from_pixels_u8_rgba(&rgba_data, color_count);
             Ok(mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec()))
         }
         QuantisationMethod::KMeans => {
@@ -333,7 +509,7 @@ fn extract_palette(
                     r: p[0],
                     g: p[1],
                     b: p[2],
-                    a: 0xff,
+                    a: DEFAULT_ALPHA_COLOR,
                 })
                 .collect();
             Ok(generate_palette(
@@ -346,18 +522,36 @@ fn extract_palette(
     }
 }
 
-/**
- * This is the meat of the tool. Opens the image, gets the palette of colors, and outputs the
- * requested artifact (either a copy of the original image with the palette along the bottom, or a
- * JSON file with the palette details.)
- *
- * [&PathBuf] file, the image to process.
- * [usize] Number of colors to pick for the palette.
- * [QuantisationMethod] The quantisation method to use.
- * [PaletteHeight] The height of the palette.
- * [OutputType] The type of output requested.
- * [&PathBuf] The output file name.
- */
+/// Processes a single image file and generates the requested output.
+///
+/// This is the main processing function that coordinates image loading,
+/// palette extraction, and output generation. It handles all three output
+/// types: original image with palette, standalone palette, and JSON output.
+///
+/// # Arguments
+///
+/// * `file` - Path to the input image file to process
+/// * `number_of_colors` - Number of colors to extract for the palette
+/// * `quantisation_method` - Algorithm to use for color quantization
+/// * `palette_height` - Height specification for the palette (absolute or percentage)
+/// * `palette_width` - Optional width for standalone palette output
+/// * `output_type` - Type of output to generate (image or JSON)
+/// * `output_file_name` - Path where the output should be saved
+///
+/// # Returns
+///
+/// * `Ok(())` - Image processed and output generated successfully
+/// * `Err` - If any step of the processing fails
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The input image file cannot be opened or read
+/// - Color palette extraction fails
+/// - Output file cannot be written
+/// - JSON output fails (though this is currently unlikely)
+///
+/// Each error includes context about which operation failed and the file path involved.
 fn process_image(
     file: &PathBuf,
     number_of_colors: usize,
@@ -417,20 +611,49 @@ fn process_image(
     Ok(())
 }
 
-/**
- * Given an original file path, an optional output path, and an output type,
- * returns a new file path for the output file. If an output path is provided,
- * the function uses that path. Otherwise, it constructs a new path based on the
- * original file path and the output type.
- *
- * Parameters:
- * - `original_file`: A reference to the original file path.
- * - `output`: An optional reference to the output file path.
- * - `output_type`: The type of output to generate.
- *
- * Returns:
- * - A `PathBuf` representing the new output file path.
- */
+/// Generates an output file path based on the original file and output settings.
+///
+/// Creates an appropriate output file path by appending "_palette" to the original
+/// filename and adjusting the extension based on the output type. Handles both
+/// explicit output paths and automatic path generation.
+///
+/// # Arguments
+///
+/// * `original_file` - Path to the original input image file
+/// * `output` - Optional explicit output path specified by the user
+/// * `output_type` - Type of output being generated (affects file extension)
+///
+/// # Returns
+///
+/// A `PathBuf` representing the complete output file path with appropriate
+/// filename and extension.
+///
+/// # Behavior
+///
+/// - If `output` is a file path: Uses that directory with generated filename
+/// - If `output` is a directory: Places generated filename in that directory
+/// - If `output` is `None`: Uses original file's directory with generated filename
+/// - Extensions: Preserves original for images, uses "json" for JSON output
+///
+/// # Examples
+///
+/// ```
+/// let original = Path::new("photo.jpg");
+///
+/// // No output path specified, original image type
+/// let result = output_file_name(original, None, OutputType::OriginalImage);
+/// assert_eq!(result, PathBuf::from("photo_palette.jpg"));
+///
+/// // Output directory specified, JSON type
+/// let output_dir = PathBuf::from("/tmp/");
+/// let result = output_file_name(original, Some(&output_dir), OutputType::Json);
+/// assert_eq!(result, PathBuf::from("/tmp/photo_palette.json"));
+///
+/// // Specific output file specified
+/// let output_file = PathBuf::from("/output/custom.png");
+/// let result = output_file_name(original, Some(&output_file), OutputType::StandalonePalette);
+/// assert_eq!(result, PathBuf::from("/output/photo_palette.jpg"));
+/// ```
 fn output_file_name(
     original_file: &Path,
     output: Option<&PathBuf>,
@@ -457,22 +680,69 @@ fn output_file_name(
     }
 }
 
-/**
- * This helper function just converts a color from RGB values to a hex string.
- */
+/// Converts RGB color values to a hexadecimal color string.
+///
+/// Takes individual red, green, and blue color components and formats them
+/// as a lowercase hexadecimal color string with a leading hash symbol.
+///
+/// # Arguments
+///
+/// * `red` - Red color component (0-255)
+/// * `green` - Green color component (0-255)
+/// * `blue` - Blue color component (0-255)
+///
+/// # Returns
+///
+/// A hexadecimal color string in the format "#rrggbb" where each component
+/// is represented as a two-digit lowercase hexadecimal value.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(rgb_to_hex(255, 128, 64), "#ff8040");
+/// assert_eq!(rgb_to_hex(0, 0, 0), "#000000");
+/// assert_eq!(rgb_to_hex(255, 255, 255), "#ffffff");
+/// ```
 fn rgb_to_hex(red: u8, green: u8, blue: u8) -> String {
     format!("#{red:02x}{green:02x}{blue:02x}")
 }
 
-/**
- * This helper function is used by clap when handling the palette-height option.
- * It parses a string and returns a palette height.
- *
- * The palette height can be provided:
- *  - as a percentage of the original image (a number followed by '%')
- *  - as a number of pixels (a number followed by the string 'px')
- *  - as a number of pixels (a number by itself)
- */
+/// Parses a palette height specification string into a PaletteHeight enum.
+///
+/// Used by the clap argument parser to convert user input into the appropriate
+/// palette height representation. Supports absolute pixel values and percentage
+/// values relative to the original image height.
+///
+/// # Arguments
+///
+/// * `s` - String specification of palette height from command line
+///
+/// # Returns
+///
+/// * `Ok(PaletteHeight::Absolute(n))` - For pixel values (e.g., "100", "100px")
+/// * `Ok(PaletteHeight::Percentage(n))` - For percentage values (e.g., "50%")
+/// * `Err(String)` - If the input format is invalid
+///
+/// # Supported Formats
+///
+/// - `"123"` - Absolute pixels (no unit suffix)
+/// - `"123px"` - Absolute pixels (with px suffix)
+/// - `"50%"` - Percentage of original image height (0-100%)
+///
+/// # Errors
+///
+/// Returns an error string if:
+/// - Percentage value is greater than 100%
+/// - Pixel value is not a positive integer
+/// - Input contains invalid characters or format
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(palette_height_parser("100"), Ok(PaletteHeight::Absolute(100)));
+/// assert_eq!(palette_height_parser("50%"), Ok(PaletteHeight::Percentage(50.0)));
+/// assert!(palette_height_parser("150%").is_err());
+/// ```
 fn palette_height_parser(s: &str) -> Result<PaletteHeight, String> {
     if s.ends_with('%') {
         let percentage = &s[0..s.len() - 1];
