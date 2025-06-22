@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, ValueEnum)]
 pub enum OutputType {
     Json,
+    JsonFile,
     OriginalImage,
     StandalonePalette,
 }
@@ -12,6 +13,7 @@ impl fmt::Display for OutputType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             OutputType::Json => write!(f, "json"),
+            OutputType::JsonFile => write!(f, "json-file"),
             OutputType::OriginalImage => write!(f, "original-image"),
             OutputType::StandalonePalette => write!(f, "standalone"),
         }
