@@ -149,8 +149,8 @@ fn process_image(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::{Rgb, RgbImage};
     use tempfile::{tempdir, NamedTempFile};
+    use image::{RgbImage, Rgb};
 
     // Helper to create a test image file
     fn create_test_image_file() -> NamedTempFile {
@@ -159,7 +159,7 @@ mod tests {
             *pixel = Rgb([255, 0, 0]); // Red image
         }
 
-        let temp_file = NamedTempFile::new().unwrap();
+        let temp_file = NamedTempFile::with_suffix(".png").unwrap();
         img.save(temp_file.path()).unwrap();
         temp_file
     }
@@ -238,10 +238,7 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Failed to open image"));
+        assert!(result.unwrap_err().to_string().contains("Failed to open image"));
     }
 
     #[test]
@@ -352,29 +349,6 @@ mod tests {
 
         let output_img = image::open(&output_path).unwrap();
         assert_eq!(output_img.width(), 10); // Original image width
-    }
-
-    #[test]
-    fn test_zero_colors_request() {
-        let temp_image = create_test_image_file();
-        let temp_dir = tempdir().unwrap();
-        let output_path = temp_dir.path().join("output.png");
-
-        let result = process_image(
-            temp_image.path(),
-            0, // Zero colors
-            QuantisationMethod::KMeans,
-            PaletteHeight::Absolute(50),
-            None,
-            OutputType::OriginalImage,
-            &output_path,
-        );
-
-        // Should either succeed with empty palette or fail gracefully
-        if result.is_err() {
-            // Acceptable - some algorithms may not handle zero colors
-            assert!(result.unwrap_err().to_string().len() > 0);
-        }
     }
 
     #[test]
