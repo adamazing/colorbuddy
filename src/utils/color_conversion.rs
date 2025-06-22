@@ -20,7 +20,7 @@ use crate::types::config::PaletteHeight;
 /// # Examples
 ///
 /// ```
-/// # use crate::rgb_to_hex;
+/// use color_buddy::utils::color_conversion::rgb_to_hex;
 /// assert_eq!(rgb_to_hex(255, 128, 64), "#ff8040");
 /// assert_eq!(rgb_to_hex(0, 0, 0), "#000000");
 /// assert_eq!(rgb_to_hex(255, 255, 255), "#ffffff");
@@ -49,15 +49,17 @@ pub fn rgb_to_hex(red: u8, green: u8, blue: u8) -> String {
 /// # Examples
 ///
 /// ```rust
-/// # use your_crate::{palette_height_parser, PaletteHeight};
+/// use color_buddy::utils::color_conversion::palette_height_parser;
+/// use color_buddy::types::config::PaletteHeight;
+///
 /// // Percentage format
-/// assert_eq!(palette_height_parser("75%"), Ok(PaletteHeight::Percentage(75.0)));
+/// assert!(matches!(palette_height_parser("75%"), Ok(PaletteHeight::Percentage(75.0))));
 ///
 /// // Pixel format with suffix
-/// assert_eq!(palette_height_parser("250px"), Ok(PaletteHeight::Absolute(250)));
+/// assert!(matches!(palette_height_parser("250px"), Ok(PaletteHeight::Absolute(250))));
 ///
 /// // Plain numeric format (interpreted as pixels)
-/// assert_eq!(palette_height_parser("300"), Ok(PaletteHeight::Absolute(300)));
+/// assert!(matches!(palette_height_parser("300"), Ok(PaletteHeight::Absolute(300))));
 ///
 /// // Invalid formats return errors
 /// assert!(palette_height_parser("150%").is_err()); // Over 100%

@@ -29,7 +29,8 @@ use crate::types::config::OutputType;
 ///
 /// ```
 /// use std::path::{Path, PathBuf};
-/// # use crate::{output_file_name, OutputType};
+/// use color_buddy::cli::output_path::output_file_name;
+/// use color_buddy::types::config::OutputType;
 ///
 /// let original = Path::new("photo.jpg");
 ///

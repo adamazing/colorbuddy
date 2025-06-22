@@ -24,7 +24,7 @@ struct Example {
 /// # Examples
 ///
 /// ```
-/// # use crate::rainbow;
+/// # use color_buddy::cli::help::rainbow;
 /// let colored = rainbow("Color Buddy");
 /// println!("{}", colored); // Displays with rainbow colors
 /// ```

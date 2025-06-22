@@ -20,9 +20,11 @@ use crate::types::config::DEFAULT_ALPHA_COLOR;
 /// # Examples
 ///
 /// ```
-/// # use crate::{mcq_color_nodes_to_exoquant_colors, DEFAULT_ALPHA_COLOR};
-/// # use mcq::ColorNode;
-/// # use exoquant::Color;
+/// use color_buddy::palette::converter::mcq_color_nodes_to_exoquant_colors;
+/// use color_buddy::types::config::DEFAULT_ALPHA_COLOR;
+/// use mcq::ColorNode;
+/// use exoquant::Color;
+///
 /// let mcq_colors = vec![ColorNode { red: 255, grn: 0, blu: 0, rgb: 0, cnt: 1 }];
 /// let exoquant_colors = mcq_color_nodes_to_exoquant_colors(mcq_colors);
 /// assert_eq!(exoquant_colors[0].r, 255);

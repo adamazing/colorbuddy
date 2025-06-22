@@ -33,10 +33,11 @@ use crate::palette::converter::mcq_color_nodes_to_exoquant_colors;
 /// # Examples
 ///
 /// ```
-/// # use crate::{extract_palette, QuantisationMethod};
-/// # use image::RgbImage;
-/// # let image = RgbImage::new(10, 10);
-/// let palette = extract_palette(&image, 8, QuantisationMethod::KMeans)?;
+/// use color_buddy::types::config::QuantisationMethod;
+/// use color_buddy::palette::extractor::extract_palette;
+/// use image::RgbImage;
+/// let image = RgbImage::new(10, 10);
+/// let palette = extract_palette(&image, 8, QuantisationMethod::KMeans).unwrap();
 /// assert!(palette.len() <= 8);
 /// ```
 pub fn extract_palette(
