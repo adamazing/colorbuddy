@@ -1,5 +1,5 @@
-use crate::types::error::{ColorBuddyError, Result};
 use crate::types::config::PaletteHeight;
+use crate::types::error::{ColorBuddyError, Result};
 
 /// Converts RGB color values to a hexadecimal color string.
 ///
@@ -76,9 +76,9 @@ pub fn palette_height_parser(s: &str) -> Result<PaletteHeight> {
     if s.ends_with('%') {
         let percentage = &s[0..s.len() - 1];
         match percentage.parse::<f32>() {
-            Ok(n) if n <= 100.0 => Ok(PaletteHeight::Percentage(n)),
+            Ok(n) if (n >= 0.0 && n <= 100.0) => Ok(PaletteHeight::Percentage(n)),
             _ => Err(ColorBuddyError::InvalidPaletteHeight(
-                "Percentage must be between 0 and 100".to_owned()
+                "Percentage must be between 0 and 100".to_owned(),
             )),
         }
     } else if s.ends_with("px") {
@@ -86,14 +86,14 @@ pub fn palette_height_parser(s: &str) -> Result<PaletteHeight> {
         match pixels.parse::<u32>() {
             Ok(n) => Ok(PaletteHeight::Absolute(n)),
             _ => Err(ColorBuddyError::InvalidPaletteHeight(
-                "Pixels must be a positive integer".to_owned()
+                "Pixels must be a positive integer".to_owned(),
             )),
         }
     } else {
         match s.parse::<u32>() {
             Ok(n) => Ok(PaletteHeight::Absolute(n)),
             _ => Err(ColorBuddyError::InvalidPaletteHeight(
-                "Pixels must be a positive integer".to_owned()
+                "Pixels must be a positive integer".to_owned(),
             )),
         }
     }
@@ -107,20 +107,77 @@ mod tests {
     fn test_rgb_to_hex() {
         // Test case 1: All zeros
         assert_eq!(rgb_to_hex(0, 0, 0), "#000000");
-
         // Test case 2: All max values
         assert_eq!(rgb_to_hex(255, 255, 255), "#ffffff");
-
         // Test case 3: Random values
         assert_eq!(rgb_to_hex(128, 64, 32), "#804020");
+        // Test case 4: Single digit values
+        assert_eq!(rgb_to_hex(1, 2, 3), "#010203");
     }
 
     #[test]
     fn test_palette_height_parser() {
-        assert_eq!(palette_height_parser("235").unwrap(), PaletteHeight::Absolute(235));
-        assert_eq!(palette_height_parser("130px").unwrap(), PaletteHeight::Absolute(130));
-        assert_eq!(palette_height_parser("50%").unwrap(), PaletteHeight::Percentage(50.0));
-        assert!(palette_height_parser("150%").is_err());
+        // Sensible values
+        assert_eq!(
+            palette_height_parser("235").unwrap(),
+            PaletteHeight::Absolute(235)
+        );
+        assert_eq!(
+            palette_height_parser("130px").unwrap(),
+            PaletteHeight::Absolute(130)
+        );
+        assert_eq!(
+            palette_height_parser("50%").unwrap(),
+            PaletteHeight::Percentage(50.0)
+        );
+
+        // Boundary values
+        assert_eq!(
+            palette_height_parser("100%").unwrap(),
+            PaletteHeight::Percentage(100.0)
+        );
+        assert_eq!(
+            palette_height_parser("99.9%").unwrap(),
+            PaletteHeight::Percentage(99.9)
+        );
+
+        // Test large absolute values
+        assert_eq!(
+            palette_height_parser("4294967295").unwrap(),
+            PaletteHeight::Absolute(4294967295)
+        ); // u32::MAX
+        assert_eq!(
+            palette_height_parser("4294967295px").unwrap(),
+            PaletteHeight::Absolute(4294967295)
+        );
+
+        // Invalid values
         assert!(palette_height_parser("foo").is_err());
+        assert!(palette_height_parser("150%").is_err());
+        assert!(palette_height_parser("100.1%").is_err());
+        assert!(palette_height_parser("101%").is_err());
+        assert!(palette_height_parser("-10%").is_err());
+        assert!(palette_height_parser("").is_err());
+        assert!(palette_height_parser("%").is_err());
+        assert!(palette_height_parser("px").is_err());
+        assert!(palette_height_parser("100%%").is_err());
+        assert!(palette_height_parser("100pxpx").is_err());
+        assert!(palette_height_parser("100PX").is_err());
+        assert!(palette_height_parser("100Px").is_err());
+        assert!(palette_height_parser("100pX").is_err());
+
+        // Zero values
+        assert_eq!(
+            palette_height_parser("0").unwrap(),
+            PaletteHeight::Absolute(0)
+        );
+        assert_eq!(
+            palette_height_parser("0px").unwrap(),
+            PaletteHeight::Absolute(0)
+        );
+        assert_eq!(
+            palette_height_parser("0%").unwrap(),
+            PaletteHeight::Percentage(0.0)
+        );
     }
 }
