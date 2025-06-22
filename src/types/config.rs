@@ -1,5 +1,5 @@
-use std::fmt;
 use clap::ValueEnum;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, ValueEnum)]
 pub enum OutputType {

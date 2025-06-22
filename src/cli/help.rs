@@ -87,17 +87,15 @@ pub fn examples() -> String {
         }
     ];
 
-    let formatted_examples = examples
-        .iter()
-        .fold(String::new(), |mut out, ex| {
-            let _ = write!(
-                out,
-                "  {}\n     {}\n\n",
-                style(ex.description.to_owned()).italic(),
-                style(ex.example.to_owned()).white()
-            );
-            out
-        });
+    let formatted_examples = examples.iter().fold(String::new(), |mut out, ex| {
+        let _ = write!(
+            out,
+            "  {}\n     {}\n\n",
+            style(ex.description.to_owned()).italic(),
+            style(ex.example.to_owned()).white()
+        );
+        out
+    });
 
     format!(
         "{}\n{}",

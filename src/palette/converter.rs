@@ -1,6 +1,6 @@
+use crate::types::config::DEFAULT_ALPHA_COLOR;
 use exoquant::Color;
 use mcq::ColorNode;
-use crate::types::config::DEFAULT_ALPHA_COLOR;
 
 /// Converts MCQ ColorNode objects to exoquant Color objects.
 ///

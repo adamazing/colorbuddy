@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use exoquant::Color;
+use serde::{Deserialize, Serialize};
 
 /// Represents a single color with RGB, alpha, and hex values
 #[derive(Debug, Clone, Serialize, Deserialize)]

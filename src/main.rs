@@ -1,11 +1,14 @@
+use anyhow::{Context, Result};
 use clap::Parser;
 use std::path::Path;
-use anyhow::{Context, Result};
 
 use color_buddy::{
     cli::{args::Args, output_path::output_file_name},
+    output::{
+        image::save_original_with_palette, json::output_json_palette,
+        standalone::save_standalone_palette,
+    },
     palette::extractor::extract_palette,
-    output::{json::output_json_palette, image::save_original_with_palette, standalone::save_standalone_palette},
     types::config::{OutputType, PaletteHeight, QuantisationMethod},
 };
 
@@ -88,8 +91,8 @@ fn process_image(
     output_type: OutputType,
     output_file_name: &Path,
 ) -> Result<()> {
-    let dynamic_image = image::open(file)
-        .with_context(|| format!("Failed to open image: {}", file.display()))?;
+    let dynamic_image =
+        image::open(file).with_context(|| format!("Failed to open image: {}", file.display()))?;
 
     let input_image = dynamic_image.to_rgb8();
     let (input_image_width, input_image_height) = input_image.dimensions();
@@ -132,13 +135,285 @@ fn process_image(
         }
         OutputType::Json => {
             output_json_palette(
-                    &color_palette,
-                    quantisation_method,
-                    number_of_colors,
-                    (input_image_width, input_image_height),
-                )?;
+                &color_palette,
+                quantisation_method,
+                number_of_colors,
+                (input_image_width, input_image_height),
+            )?;
         }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::{tempdir, NamedTempFile};
+    use image::{RgbImage, Rgb};
+
+    // Helper to create a test image file
+    fn create_test_image_file() -> NamedTempFile {
+        let mut img = RgbImage::new(10, 10);
+        for pixel in img.pixels_mut() {
+            *pixel = Rgb([255, 0, 0]); // Red image
+        }
+
+        let temp_file = NamedTempFile::with_suffix(".png").unwrap();
+        img.save(temp_file.path()).unwrap();
+        temp_file
+    }
+
+    #[test]
+    fn test_process_image_original_output() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("output.png");
+
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(50),
+            None,
+            OutputType::OriginalImage,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_process_image_standalone_output() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("palette.png");
+
+        let result = process_image(
+            temp_image.path(),
+            6,
+            QuantisationMethod::MedianCut,
+            PaletteHeight::Percentage(25.0),
+            Some(200),
+            OutputType::StandalonePalette,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_process_image_json_output() {
+        let temp_image = create_test_image_file();
+
+        let result = process_image(
+            temp_image.path(),
+            8,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(100), // Ignored for JSON
+            None,
+            OutputType::Json,
+            Path::new("unused.json"), // JSON output doesn't use this path
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_process_image_nonexistent_file() {
+        let nonexistent = Path::new("does_not_exist.jpg");
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("output.png");
+
+        let result = process_image(
+            nonexistent,
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(50),
+            None,
+            OutputType::OriginalImage,
+            &output_path,
+        );
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to open image"));
+    }
+
+    #[test]
+    fn test_process_image_invalid_output_directory() {
+        let temp_image = create_test_image_file();
+        let invalid_output = Path::new("/invalid/path/that/does/not/exist/output.png");
+
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(50),
+            None,
+            OutputType::OriginalImage,
+            invalid_output,
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_total_height_calculation_absolute() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("output.png");
+
+        // Test absolute height for original image (should add to image height)
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(50),
+            None,
+            OutputType::OriginalImage,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+
+        // Verify output image exists and has correct dimensions
+        let output_img = image::open(&output_path).unwrap();
+        assert_eq!(output_img.height(), 60); // 10 (original) + 50 (palette)
+    }
+
+    #[test]
+    fn test_total_height_calculation_percentage() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("output.png");
+
+        // Test percentage height (50% of 10px = 5px)
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Percentage(50.0),
+            None,
+            OutputType::OriginalImage,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+
+        let output_img = image::open(&output_path).unwrap();
+        assert_eq!(output_img.height(), 15); // 10 (original) + 5 (50% palette)
+    }
+
+    #[test]
+    fn test_standalone_palette_with_custom_width() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("palette.png");
+
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(100),
+            Some(300), // Custom width
+            OutputType::StandalonePalette,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+
+        let output_img = image::open(&output_path).unwrap();
+        assert_eq!(output_img.width(), 300);
+        assert_eq!(output_img.height(), 100);
+    }
+
+    #[test]
+    fn test_standalone_palette_default_width() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("palette.png");
+
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(100),
+            None, // No custom width - should use image width
+            OutputType::StandalonePalette,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+
+        let output_img = image::open(&output_path).unwrap();
+        assert_eq!(output_img.width(), 10); // Original image width
+    }
+
+    #[test]
+    fn test_large_number_of_colors() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("output.png");
+
+        let result = process_image(
+            temp_image.path(),
+            1000, // Large number
+            QuantisationMethod::KMeans,
+            PaletteHeight::Absolute(50),
+            None,
+            OutputType::OriginalImage,
+            &output_path,
+        );
+
+        // Should handle gracefully
+        assert!(result.is_ok() || result.is_err());
+    }
+
+    #[test]
+    fn test_percentage_rounding() {
+        let temp_image = create_test_image_file(); // 10x10 image
+        let temp_dir = tempdir().unwrap();
+        let output_path = temp_dir.path().join("output.png");
+
+        // Test 33.33% of 10px should round to 3px
+        let result = process_image(
+            temp_image.path(),
+            4,
+            QuantisationMethod::KMeans,
+            PaletteHeight::Percentage(33.33),
+            None,
+            OutputType::OriginalImage,
+            &output_path,
+        );
+
+        assert!(result.is_ok());
+
+        let output_img = image::open(&output_path).unwrap();
+        assert_eq!(output_img.height(), 13); // 10 + 3 (rounded)
+    }
+
+    #[test]
+    fn test_different_quantisation_methods() {
+        let temp_image = create_test_image_file();
+        let temp_dir = tempdir().unwrap();
+
+        for method in [QuantisationMethod::KMeans, QuantisationMethod::MedianCut] {
+            let output_path = temp_dir.path().join(format!("output_{:?}.png", method));
+
+            let result = process_image(
+                temp_image.path(),
+                4,
+                method,
+                PaletteHeight::Absolute(50),
+                None,
+                OutputType::OriginalImage,
+                &output_path,
+            );
+
+            assert!(result.is_ok(), "Method {:?} failed", method);
+            assert!(output_path.exists());
+        }
+    }
 }

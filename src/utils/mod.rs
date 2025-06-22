@@ -6,4 +6,4 @@
 pub mod color_conversion;
 
 // Re-export utility functions
-pub use color_conversion::{rgb_to_hex, palette_height_parser};
+pub use color_conversion::{palette_height_parser, rgb_to_hex};

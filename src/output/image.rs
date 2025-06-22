@@ -1,8 +1,7 @@
-use std::path::Path;
-use anyhow::{Context,Result};
-use image::RgbImage;
+use anyhow::{Context, Result};
 use exoquant::Color;
-// use crate::types::error::Result;
+use image::RgbImage;
+use std::path::Path;
 
 /// Saves the original image with a color palette strip appended to the bottom.
 ///
@@ -53,7 +52,11 @@ pub fn save_original_with_palette(
 
     // Add the palette strip
     for y in input_image_height..total_height {
-        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors.into()) {
+        for (x0, q) in color_palette
+            .iter()
+            .enumerate()
+            .take(number_of_colors.into())
+        {
             let x1 = x0 as u32 * color_width;
             for x2 in 0..color_width {
                 imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
@@ -61,6 +64,8 @@ pub fn save_original_with_palette(
         }
     }
 
-    imgbuf.save(output_file_name).with_context(|| format!("Failed to save image to {}", output_file_name.display()))?;
+    imgbuf
+        .save(output_file_name)
+        .with_context(|| format!("Failed to save image to {}", output_file_name.display()))?;
     Ok(())
 }
