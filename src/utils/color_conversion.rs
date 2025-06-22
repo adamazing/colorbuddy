@@ -180,4 +180,21 @@ mod tests {
             PaletteHeight::Percentage(0.0)
         );
     }
+
+    #[test]
+    fn test_palette_height_parser_unicode_and_special_chars() {
+        // Test Unicode digits (should fail - only ASCII digits supported)
+        assert!(palette_height_parser("１００%").is_err()); // Full-width digits
+
+        // Test special characters
+        assert!(palette_height_parser("50+px").is_err());
+        assert!(palette_height_parser("50-px").is_err());
+        assert!(palette_height_parser("50*px").is_err());
+        assert!(palette_height_parser("50/px").is_err());
+
+        // Test with various brackets and symbols
+        assert!(palette_height_parser("(50)px").is_err());
+        assert!(palette_height_parser("[50]px").is_err());
+        assert!(palette_height_parser("{50}px").is_err());
+    }
 }
