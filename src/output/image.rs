@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use exoquant::Color;
 use image::RgbImage;
 use std::path::Path;
-// use crate::types::error::Result;
 
 /// Saves the original image with a color palette strip appended to the bottom.
 ///
