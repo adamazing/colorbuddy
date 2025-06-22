@@ -149,8 +149,8 @@ fn process_image(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use image::{Rgb, RgbImage};
     use tempfile::{tempdir, NamedTempFile};
-    use image::{RgbImage, Rgb};
 
     // Helper to create a test image file
     fn create_test_image_file() -> NamedTempFile {
@@ -238,7 +238,10 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to open image"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to open image"));
     }
 
     #[test]
