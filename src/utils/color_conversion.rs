@@ -76,7 +76,7 @@ pub fn palette_height_parser(s: &str) -> Result<PaletteHeight> {
     if s.ends_with('%') {
         let percentage = &s[0..s.len() - 1];
         match percentage.parse::<f32>() {
-            Ok(n) if (n >= 0.0 && n <= 100.0) => Ok(PaletteHeight::Percentage(n)),
+            Ok(n) if (0.0..=100.0).contains(&n) => Ok(PaletteHeight::Percentage(n)),
             _ => Err(ColorBuddyError::InvalidPaletteHeight(
                 "Percentage must be between 0 and 100".to_owned(),
             )),
