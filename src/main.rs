@@ -6,7 +6,7 @@ use color_buddy::{
     cli::{args::Args, output_path::output_file_name},
     output::{
         image::save_original_with_palette, json::output_json_palette,
-        standalone::save_standalone_palette,
+        json::write_json_palette_to_file, standalone::save_standalone_palette,
     },
     palette::extractor::extract_palette,
     types::config::{OutputType, PaletteHeight, QuantisationMethod},
@@ -107,6 +107,7 @@ fn process_image(
             (a / 100.0 * input_image_height as f32).round() as u32
         }
         (OutputType::Json, _) => input_image_height,
+        (OutputType::JsonFile, _) => input_image_height,
     };
 
     let color_palette = extract_palette(&input_image, number_of_colors, quantisation_method)?;
@@ -139,6 +140,15 @@ fn process_image(
                 quantisation_method,
                 number_of_colors,
                 (input_image_width, input_image_height),
+            )?;
+        }
+        OutputType::JsonFile => {
+            write_json_palette_to_file(
+                &color_palette,
+                quantisation_method,
+                number_of_colors,
+                (input_image_width, input_image_height),
+                output_file_name,
             )?;
         }
     }

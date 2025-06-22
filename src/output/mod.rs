@@ -9,5 +9,5 @@ pub mod standalone;
 
 // Re-export output functions
 pub use image::save_original_with_palette;
-pub use json::output_json_palette;
+pub use json::{output_json_palette, write_json_palette_to_file};
 pub use standalone::save_standalone_palette;

@@ -19,7 +19,7 @@ pub use types::{
 // Re-export main functions
 pub use cli::args::Args;
 pub use output::{
-    image::save_original_with_palette, json::output_json_palette,
+    image::save_original_with_palette, json::output_json_palette, json::write_json_palette_to_file,
     standalone::save_standalone_palette,
 };
 pub use palette::extractor::extract_palette;
