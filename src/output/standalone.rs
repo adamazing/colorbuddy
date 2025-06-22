@@ -1,5 +1,5 @@
-use std::path::Path;
 use exoquant::Color;
+use std::path::Path;
 // use anyhow::Context;
 use anyhow::{Context, Result};
 // use crate::types::error::Result;
@@ -37,7 +37,11 @@ pub fn save_standalone_palette(
     let color_width = palette_width / number_of_colors as u32;
 
     for y in 0..palette_height {
-        for (x0, q) in color_palette.iter().enumerate().take(number_of_colors.into()) {
+        for (x0, q) in color_palette
+            .iter()
+            .enumerate()
+            .take(number_of_colors.into())
+        {
             let x1 = x0 as u32 * color_width;
             for x2 in 0..color_width {
                 imgbuf.put_pixel(x1 + x2, y, image::Rgb([q.r, q.g, q.b]));
@@ -45,7 +49,9 @@ pub fn save_standalone_palette(
         }
     }
 
-    imgbuf.save(output_file_name).with_context(|| format!("Failed to save palette to {}", output_file_name.display()))?;
+    imgbuf
+        .save(output_file_name)
+        .with_context(|| format!("Failed to save palette to {}", output_file_name.display()))?;
 
     Ok(())
 }

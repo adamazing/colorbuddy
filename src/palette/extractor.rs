@@ -1,11 +1,11 @@
-use exoquant::{generate_palette, optimizer, Color, Histogram, SimpleColorSpace};
-use image::RgbImage;
-use mcq::MMCQ;
+use crate::palette::converter::mcq_color_nodes_to_exoquant_colors;
 use crate::types::{
     config::{QuantisationMethod, DEFAULT_ALPHA_COLOR},
     error::Result,
 };
-use crate::palette::converter::mcq_color_nodes_to_exoquant_colors;
+use exoquant::{generate_palette, optimizer, Color, Histogram, SimpleColorSpace};
+use image::RgbImage;
+use mcq::MMCQ;
 
 /// Extracts a color palette from an RGB image using the specified quantization method.
 ///
@@ -55,7 +55,9 @@ pub fn extract_palette(
 
             let mcq = MMCQ::from_pixels_u8_rgba(&rgba_data, number_of_colors.into());
 
-            Ok(mcq_color_nodes_to_exoquant_colors(mcq.get_quantized_colors().to_vec()))
+            Ok(mcq_color_nodes_to_exoquant_colors(
+                mcq.get_quantized_colors().to_vec(),
+            ))
         }
         QuantisationMethod::KMeans => {
             let histogram: Histogram = input_image
@@ -81,7 +83,7 @@ pub fn extract_palette(
 mod tests {
     use super::*;
     use crate::types::config::QuantisationMethod;
-    use image::{RgbImage, Rgb};
+    use image::{Rgb, RgbImage};
 
     // Helper function to create a test image with known colors
     fn create_test_image(width: u32, height: u32, colors: &[Rgb<u8>]) -> RgbImage {
@@ -108,9 +110,9 @@ mod tests {
     #[test]
     fn test_extract_palette_median_cut_basic() {
         let colors = vec![
-            Rgb([255, 0, 0]),   // Red
-            Rgb([0, 255, 0]),   // Green
-            Rgb([0, 0, 255]),   // Blue
+            Rgb([255, 0, 0]), // Red
+            Rgb([0, 255, 0]), // Green
+            Rgb([0, 0, 255]), // Blue
         ];
         let image = create_test_image(10, 10, &colors);
 
@@ -125,9 +127,9 @@ mod tests {
     #[test]
     fn test_extract_palette_kmeans_basic() {
         let colors = vec![
-            Rgb([255, 0, 0]),   // Red
-            Rgb([0, 255, 0]),   // Green
-            Rgb([0, 0, 255]),   // Blue
+            Rgb([255, 0, 0]), // Red
+            Rgb([0, 255, 0]), // Green
+            Rgb([0, 0, 255]), // Blue
         ];
         let image = create_test_image(10, 10, &colors);
 
@@ -164,18 +166,18 @@ mod tests {
     fn test_extract_palette_complex_image() {
         // Create an image with many different colors
         let colors = vec![
-            Rgb([255, 0, 0]),     // Red
-            Rgb([255, 128, 0]),   // Orange
-            Rgb([255, 255, 0]),   // Yellow
-            Rgb([128, 255, 0]),   // Lime
-            Rgb([0, 255, 0]),     // Green
-            Rgb([0, 255, 128]),   // Spring green
-            Rgb([0, 255, 255]),   // Cyan
-            Rgb([0, 128, 255]),   // Sky blue
-            Rgb([0, 0, 255]),     // Blue
-            Rgb([128, 0, 255]),   // Purple
-            Rgb([255, 0, 255]),   // Magenta
-            Rgb([255, 0, 128]),   // Rose
+            Rgb([255, 0, 0]),   // Red
+            Rgb([255, 128, 0]), // Orange
+            Rgb([255, 255, 0]), // Yellow
+            Rgb([128, 255, 0]), // Lime
+            Rgb([0, 255, 0]),   // Green
+            Rgb([0, 255, 128]), // Spring green
+            Rgb([0, 255, 255]), // Cyan
+            Rgb([0, 128, 255]), // Sky blue
+            Rgb([0, 0, 255]),   // Blue
+            Rgb([128, 0, 255]), // Purple
+            Rgb([255, 0, 255]), // Magenta
+            Rgb([255, 0, 128]), // Rose
         ];
         let image = create_test_image(20, 20, &colors);
 

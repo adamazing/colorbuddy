@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use crate::types::config::OutputType;
+use std::path::{Path, PathBuf};
 
 /// Generates an output file path based on the original file and output settings.
 ///

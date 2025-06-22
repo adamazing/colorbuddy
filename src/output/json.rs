@@ -1,9 +1,9 @@
-use anyhow::{Result, Context};
-use exoquant::Color;
 use crate::types::{
-    color::{ColorInfo, PaletteOutput, PaletteMetadata, ImageDimensions},
+    color::{ColorInfo, ImageDimensions, PaletteMetadata, PaletteOutput},
     config::QuantisationMethod,
 };
+use anyhow::{Context, Result};
+use exoquant::Color;
 
 /// Outputs the color palette as formatted JSON to stdout.
 ///
@@ -51,10 +51,7 @@ pub fn output_json_palette(
     requested_colors: u16,
     image_dimensions: (u32, u32),
 ) -> Result<()> {
-    let colors: Vec<ColorInfo> = color_palette
-        .iter()
-        .map(ColorInfo::from_color)
-        .collect();
+    let colors: Vec<ColorInfo> = color_palette.iter().map(ColorInfo::from_color).collect();
 
     let metadata = PaletteMetadata::new(
         requested_colors,
@@ -67,7 +64,8 @@ pub fn output_json_palette(
     );
 
     let output = PaletteOutput { metadata, colors };
-    let json = serde_json::to_string_pretty(&output).context("Failed to serialize palette to JSON")?;
+    let json =
+        serde_json::to_string_pretty(&output).context("Failed to serialize palette to JSON")?;
 
     println!("{}", json);
     Ok(())

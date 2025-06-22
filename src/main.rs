@@ -1,11 +1,14 @@
+use anyhow::{Context, Result};
 use clap::Parser;
 use std::path::Path;
-use anyhow::{Context, Result};
 
 use color_buddy::{
     cli::{args::Args, output_path::output_file_name},
+    output::{
+        image::save_original_with_palette, json::output_json_palette,
+        standalone::save_standalone_palette,
+    },
     palette::extractor::extract_palette,
-    output::{json::output_json_palette, image::save_original_with_palette, standalone::save_standalone_palette},
     types::config::{OutputType, PaletteHeight, QuantisationMethod},
 };
 
@@ -88,8 +91,8 @@ fn process_image(
     output_type: OutputType,
     output_file_name: &Path,
 ) -> Result<()> {
-    let dynamic_image = image::open(file)
-        .with_context(|| format!("Failed to open image: {}", file.display()))?;
+    let dynamic_image =
+        image::open(file).with_context(|| format!("Failed to open image: {}", file.display()))?;
 
     let input_image = dynamic_image.to_rgb8();
     let (input_image_width, input_image_height) = input_image.dimensions();
@@ -132,11 +135,11 @@ fn process_image(
         }
         OutputType::Json => {
             output_json_palette(
-                    &color_palette,
-                    quantisation_method,
-                    number_of_colors,
-                    (input_image_width, input_image_height),
-                )?;
+                &color_palette,
+                quantisation_method,
+                number_of_colors,
+                (input_image_width, input_image_height),
+            )?;
         }
     }
 

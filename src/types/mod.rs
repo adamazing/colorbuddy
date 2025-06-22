@@ -8,6 +8,6 @@ pub mod config;
 pub mod error;
 
 // Re-export commonly used types
-pub use color::{ColorInfo, PaletteOutput, PaletteMetadata, ImageDimensions};
-pub use config::{OutputType, QuantisationMethod, PaletteHeight};
+pub use color::{ColorInfo, ImageDimensions, PaletteMetadata, PaletteOutput};
+pub use config::{OutputType, PaletteHeight, QuantisationMethod};
 pub use error::{ColorBuddyError, Result};

@@ -1,8 +1,10 @@
+use crate::cli::help::{about, examples, long_about};
+use crate::types::config::{
+    OutputType, PaletteHeight, QuantisationMethod, DEFAULT_NUMBER_OF_COLORS, DEFAULT_PALETTE_HEIGHT,
+};
+use crate::utils::color_conversion::palette_height_parser;
 use clap::Parser;
 use std::path::PathBuf;
-use crate::types::config::{OutputType, QuantisationMethod, PaletteHeight, DEFAULT_PALETTE_HEIGHT, DEFAULT_NUMBER_OF_COLORS};
-use crate::utils::color_conversion::palette_height_parser;
-use crate::cli::help::{about, long_about, examples};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about = about(), long_about = long_about(), after_help = examples())]
@@ -37,4 +39,3 @@ pub struct Args {
     #[arg(help = "Any number of images to process.")]
     pub images: Vec<PathBuf>,
 }
-
